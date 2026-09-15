@@ -1,0 +1,2 @@
+# The kata-static tarball is downloaded into this directory at build time (see `make install-binaries`)
+# and bundled into the installation image by ko at /var/run/ko/. It is intentionally not committed.

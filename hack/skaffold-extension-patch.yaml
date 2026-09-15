@@ -1,0 +1,19 @@
+apiVersion: operator.gardener.cloud/v1alpha1
+kind: Extension
+metadata:
+  name: runtime-kata
+spec:
+  deployment:
+    extension:
+      helm:
+        ociRepository:
+          ref: stackitcloud/gardener-extension-runtime-kata/charts/gardener-extension-runtime-kata:v0.0.0
+      values:
+        image:
+          repository: null
+          tag: null
+          pullPolicy: Always
+        imageVectorOverwrite:
+          images:
+          - name: runtime-kata-installation
+            ref: stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata-installation:v0.0.0

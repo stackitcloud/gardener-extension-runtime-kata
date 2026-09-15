@@ -1,0 +1,24 @@
+kind: Shoot
+apiVersion: core.gardener.cloud/v1beta1
+metadata:
+  name: kata-shoot
+  namespace: garden-local
+spec:
+...
+  provider:
+    workers:
+      # The worker pool must use a nested-virtualization-capable machine type and, typically, a
+      # user-defined taint so that only workloads that tolerate it land on these nodes.
+      - name: worker-kata
+...
+        cri:
+          name: containerd
+          containerRuntimes:
+            - type: kata
+# KataConfiguration is currently empty; the installed RuntimeClasses (kata-qemu, kata-clh) determine
+# the behaviour. providerConfig may be omitted:
+#              providerConfig:
+#                apiVersion: kata.runtime.extensions.config.gardener.cloud/v1alpha1
+#                kind: KataConfiguration
+...
+

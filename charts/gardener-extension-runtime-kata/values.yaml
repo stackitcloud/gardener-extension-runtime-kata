@@ -1,0 +1,44 @@
+image:
+  ref: ""
+  repository: ghcr.io/stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+#  Please find documentation in https://github.com/gardener/gardener/blob/master/docs/deployment/image_vector.md
+imageVectorOverwrite: {}
+  # images:
+  #   - name: runtime-kata-installation
+  #     repository: foo.bar/gardener/extensions/runtime-kata-installation
+  #     tag: v1.2.3
+
+resources: {}
+vpa:
+  enabled: true
+  resourcePolicy:
+    minAllowed:
+      memory: 50Mi
+  updatePolicy:
+    updateMode: "Recreate"
+
+# configuration of the OperatingSystemConfig mutating webhook server
+webhookConfig:
+  servicePort: 443
+  serverPort: 10250
+
+# settings for metrics, e.g. scraping by seed-prometheus
+metrics:
+  enableScraping: true
+  # default metrics endpoint in controller-runtime
+  port: 8080
+
+controllers:
+  concurrentSyncs: 5
+  ignoreOperationAnnotation: false
+  heartbeat:
+    renewIntervalSeconds: 30
+
+# injected by gardener when deploying the extension
+gardener:
+  version: ""

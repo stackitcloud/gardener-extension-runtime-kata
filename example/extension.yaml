@@ -1,0 +1,15 @@
+apiVersion: operator.gardener.cloud/v1alpha1
+kind: Extension
+metadata:
+  annotations:
+    security.gardener.cloud/pod-security-enforce: restricted
+  name: runtime-kata
+spec:
+  deployment:
+    extension:
+      helm:
+        ociRepository:
+          ref: ghcr.io/stackitcloud/gardener-extension-runtime-kata/charts/gardener-extension-runtime-kata:v0.1.0-dev
+  resources:
+  - kind: ContainerRuntime
+    type: kata

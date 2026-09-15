@@ -1,0 +1,35 @@
+aliases:
+  gardener-extension-runtime-kata-reviewers:
+    - aniruddha2000
+    - breuerfelix
+    - cerealsnow
+    - crigertg
+    - dergeberl
+    - einfachnuralex
+    - ftl
+    - hasit97
+    - hown3d
+    - jamand
+    - jastBytes
+    - JuliusSte
+    - Kumm-Kai
+    - lukasjarosch
+    - maboehm
+    - MichaelEischer
+    - mstueer
+    - nschad
+    - OlegVanHorst
+    - RAPSNX
+    - relusc
+    - robinschneider
+    - timebertt
+    - viragvoros
+    - xoxys
+    - tobias-pfaffelmoser-ske
+
+  gardener-extension-runtime-kata-approvers:
+    - jastBytes
+    - MichaelEischer
+    - OlegVanHorst
+    - relusc
+    - tobias-pfaffelmoser-ske

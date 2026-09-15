@@ -1,0 +1,68 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    'github>stackitcloud/ske-ci-infra//config/renovate/ske.json5',
+  ],
+  dependencyDashboard: true,
+  postUpdateOptions: [
+    'gomodTidy',
+  ],
+  separateMinorPatch: true,
+  additionalReviewers: [
+    'team:ske-security',
+  ],
+  labels: [
+    'kind/upgrade',
+  ],
+  commitMessagePrefix: '🤖',
+  customManagers: [
+    {
+      description: 'Update `_VERSION` and `_version` variables in Makefiles and scripts. Inspired by `regexManagers:dockerfileVersions` preset.',
+      customType: 'regex',
+      managerFilePatterns: [
+        '/Makefile$/',
+        '/\\.mk$/',
+        '/\\.sh$/',
+      ],
+      matchStrings: [
+        '# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?(?: registryUrl=(?<registryUrl>[^\\s]+?))?\\s.+?_(VERSION|version) *[?:]?= *"?(?<currentValue>.+?)"?\\s',
+      ],
+    },
+  ],
+  packageRules: [
+    {
+      groupName: 'gardener/gardener',
+      matchPackageNames: [
+        'github.com/gardener/gardener',
+        'github.com/gardener/gardener/pkg/apis',
+        'github.com/gardener/gardener/hack/tools',
+      ],
+    },
+    {
+      description: 'dependencies are updated alongside gardener/gardener',
+      enabled: false,
+      matchDatasources: [
+        'go',
+      ],
+      matchPackageNames: [
+        '/k8s.io/',
+        '/sigs.k8s.io/controller-runtime/',
+      ],
+    },
+    {
+      groupName: 'Go testing',
+      matchUpdateTypes: [
+        'minor',
+        'patch',
+      ],
+      addLabels: [
+        'skip-review',
+      ],
+      matchSourceUrls: [
+        'https://github.com/onsi/gomega{/,}**',
+        'https://github.com/onsi/ginkgo{/,}**',
+      ],
+    },
+  ],
+}

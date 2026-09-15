@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/GoogleContainerTools/skaffold/main/docs-v2/content/en/schemas/v3.json
+apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: gardener-extension-runtime-kata
+build:
+  artifacts:
+    # controller
+    - image: stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata
+      ko:
+        main: ./cmd/gardener-extension-runtime-kata
+        ldflags:
+          - "{{.LD_FLAGS}}"
+    # data-only installation image (carries the kata-static tarball as kodata).
+    # Run `make install-binaries` before `skaffold` so the tarball is present in kodata.
+    - image: stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata-installation
+      platforms:
+        - linux/amd64
+      ko:
+        main: ./cmd/gardener-extension-runtime-kata-installation
+        dependencies:
+          paths:
+            - "cmd/gardener-extension-runtime-kata-installation/*.go"
+            - "cmd/gardener-extension-runtime-kata-installation/kodata/**"
+    # extension Helm chart
+    - image: stackitcloud/gardener-extension-runtime-kata/charts/gardener-extension-runtime-kata
+      custom:
+        buildCommand: |
+          bash ${GARDENER_HACK_DIR}/push-helm.sh ./charts/gardener-extension-runtime-kata .image.ref
+      requires:
+        - image: stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata
+          alias: IMG
+manifests:
+  remoteManifests:
+    - manifest: garden:extensions.operator.gardener.cloud/runtime-kata
+  hooks:
+    before:
+      - host:
+          command:
+            - bash
+            - -c
+            - kubectl annotate -n garden extensions.operator.gardener.cloud/runtime-kata kustomize.toolkit.fluxcd.io/reconcile=disabled
+      - host:
+          command:
+            - bash
+            - -c
+            - kubectl patch -n garden extensions.operator.gardener.cloud/runtime-kata --type=merge --patch-file=hack/skaffold-extension-patch.yaml
+deploy:
+  kubectl: {}
+resourceSelector:
+  # instruct skaffold to inject the built image reference into the ControllerDeployment
+  allow:
+    - groupKind: Extension.operator.gardener.cloud
+      image:
+        - .spec.deployment.extension.helm.ociRepository.ref
+        - .spec.deployment.extension.values.imageVectorOverwrite.images.*.ref

@@ -1,0 +1,114 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "name" . }}
+  labels:
+{{ include "labels" . | indent 4 }}
+rules:
+- apiGroups:
+    - extensions.gardener.cloud
+  resources:
+    - clusters
+  verbs:
+    - get
+    - list
+    - watch
+- apiGroups:
+  - extensions.gardener.cloud
+  resources:
+  - containerruntimes
+  - containerruntimes/status
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - secrets/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+  - list 
+  - watch 
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  resourceNames:
+  - runtime-kata-leader-election
+  - gardener-extension-heartbeat 
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+    - resources.gardener.cloud
+  resources:
+    - managedresources
+  verbs:
+    - get
+    - list
+    - create
+    - delete
+    - watch
+    - patch
+    - update
+- apiGroups:
+    - ""
+  resources:
+    - events
+  verbs:
+    - create
+- apiGroups:
+    - ""
+  resources:
+    - namespaces
+  verbs:
+    - get
+    - list
+    - watch
+# Required to (de)register the OperatingSystemConfig mutating webhook on the seed.
+- apiGroups:
+    - admissionregistration.k8s.io
+  resources:
+    - mutatingwebhookconfigurations
+  verbs:
+    - get
+    - list
+    - watch
+    - create
+    - update
+    - patch
+    - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: gardener-extension-runtime-kata
+  labels:
+    app.kubernetes.io/name: gardener-extension-runtime-kata
+    helm.sh/chart: gardener-extension-runtime-kata
+    app.kubernetes.io/instance: {{ .Release.Name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: gardener-extension-runtime-kata
+subjects:
+- kind: ServiceAccount
+  name: gardener-extension-runtime-kata
+  namespace: {{ .Release.Namespace }}

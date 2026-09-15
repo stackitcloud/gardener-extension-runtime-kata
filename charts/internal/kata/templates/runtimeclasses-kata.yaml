@@ -1,0 +1,39 @@
+# RuntimeClasses for the Kata Containers hypervisors installed by this extension.
+#
+# - handler must match the containerd runtime handler configured by the OperatingSystemConfig webhook
+#   (pkg/webhook/controlplane) and the RuntimeClass name.
+# - scheduling.nodeSelector pins pods to nodes of worker pools that requested the kata container
+#   runtime. Gardener sets containerruntime.worker.gardener.cloud/kata=true on every node of such a
+#   pool (ContainerRuntimeNameWorkerLabel).
+# - overhead.podFixed accounts for the per-pod microVM (guest kernel + agent) memory/CPU so the
+#   scheduler and eviction logic reserve room for the sandbox.
+#
+# Note: nested-virtualization worker pools are expected to carry a user-defined taint. Pods using
+# these RuntimeClasses must tolerate that taint themselves; the taint key is not known to the
+# extension, so no tolerations are injected here.
+---
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: kata-qemu
+handler: kata-qemu
+overhead:
+  podFixed:
+    memory: "160Mi"
+    cpu: "250m"
+scheduling:
+  nodeSelector:
+    containerruntime.worker.gardener.cloud/kata: "true"
+---
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: kata-clh
+handler: kata-clh
+overhead:
+  podFixed:
+    memory: "130Mi"
+    cpu: "250m"
+scheduling:
+  nodeSelector:
+    containerruntime.worker.gardener.cloud/kata: "true"
