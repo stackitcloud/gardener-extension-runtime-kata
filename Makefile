@@ -130,7 +130,7 @@ revendor: tidy
 .PHONY: clean
 clean: ## Cleans the ./cmd and ./pkg packages and build artifacts
 	@rm -rf images.json controller-images.txt installation-images.txt artifacts $(INSTALLATION_KODATA_DIR)/*.tar.gz
-	@bash $(GARDENER_HACK_DIR)/clean.sh ./cmd/... ./pkg/...
+	@bash $(GARDENER_HACK_DIR)/clean.sh ./cmd/... ./pkg/... ./imagevector/...
 
 .PHONY: check-generate
 check-generate: ## Check if generate target has been run
@@ -138,7 +138,7 @@ check-generate: ## Check if generate target has been run
 
 .PHONY: check
 check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golangci-lint, gofmt/goimports and checks the chart for validity
-	@bash $(GARDENER_HACK_DIR)/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/... ./test...
+	@bash $(GARDENER_HACK_DIR)/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/... ./imagevector/... ./test...
 	@bash $(GARDENER_HACK_DIR)/check-charts.sh ./charts
 
 .PHONY: generate
@@ -148,7 +148,7 @@ generate: $(CONTROLLER_GEN) $(CRD_REF_DOCS) $(HELM) $(YQ) $(GOIMPORTS) ## Genera
 
 .PHONY: format
 format: $(GOIMPORTS) $(GOIMPORTSREVISER) ## Formats all files in ./cmd, ./pkg and ./test
-	@bash $(GARDENER_HACK_DIR)/format.sh ./cmd ./pkg ./test
+	@bash $(GARDENER_HACK_DIR)/format.sh ./cmd ./pkg ./imagevector ./test
 
 .PHONY: check-format
 check-format: format
@@ -158,7 +158,7 @@ check-format: format
 
 .PHONY: test
 test: ## Runs the unit-test suite
-	@LD_FLAGS="$(LD_FLAGS)" $(HACK_DIR)/test.sh ./cmd/... ./pkg/...
+	@LD_FLAGS="$(LD_FLAGS)" $(HACK_DIR)/test.sh ./cmd/... ./pkg/... ./imagevector/...
 
 .PHONY: verify
 verify: check check-format test ## Run check, format and test

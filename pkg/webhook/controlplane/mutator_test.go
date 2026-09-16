@@ -123,6 +123,7 @@ var _ = Describe("Mutator", func() {
 			tarball := fileByPath(osc.Spec.Files, tarballPath())
 			Expect(tarball).NotTo(BeNil())
 			Expect(tarball.Content.ImageRef).NotTo(BeNil())
+			Expect(tarball.Content.ImageRef.Image).To(Equal("ghcr.io/stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata-installation"))
 			Expect(tarball.Content.ImageRef.FilePathInImage).To(Equal(tarballPathInImage))
 
 			By("delivering the install script inline")
