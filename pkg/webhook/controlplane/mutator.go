@@ -105,7 +105,9 @@ func (m *mutator) Mutate(ctx context.Context, newObj, _ client.Object) error {
 	if err := ensureCRIConfig(osc.Spec.CRIConfig); err != nil {
 		return err
 	}
-	ensureFiles(&osc.Spec.Files)
+	if err := ensureFiles(&osc.Spec.Files); err != nil {
+		return fmt.Errorf("could not ensure files for OperatingSystemConfig mutation: %w", err)
+	}
 	ensureUnits(&osc.Spec.Units)
 
 	return nil
@@ -133,9 +135,12 @@ func ensureCRIConfig(criConfig *extensionsv1alpha1.CRIConfig) error {
 
 // ensureFiles adds the OSC files that deliver the Kata payload: the kata-static tarball (pulled from
 // the installation image by node-agent) and the inline install script.
-func ensureFiles(files *[]extensionsv1alpha1.File) {
+func ensureFiles(files *[]extensionsv1alpha1.File) error {
 	// FindImage resolves the fully-qualified installation image reference (repository + tag).
-	installerImage := imagevector.FindImage(kata.RuntimeKataInstallationImageName)
+	installerImage, err := imagevector.ImageVector().FindImage(kata.RuntimeKataInstallationImageName)
+	if err != nil {
+		return err
+	}
 
 	desired := []extensionsv1alpha1.File{
 		{
@@ -145,7 +150,7 @@ func ensureFiles(files *[]extensionsv1alpha1.File) {
 			Permissions: ptr.To[uint32](0644),
 			Content: extensionsv1alpha1.FileContent{
 				ImageRef: &extensionsv1alpha1.FileContentImageRef{
-					Image:           installerImage,
+					Image:           installerImage.String(),
 					FilePathInImage: tarballPathInImage,
 				},
 			},
@@ -165,6 +170,8 @@ func ensureFiles(files *[]extensionsv1alpha1.File) {
 	for _, file := range desired {
 		upsertFile(files, file)
 	}
+
+	return nil
 }
 
 // ensureUnits adds the oneshot systemd unit that unpacks the Kata payload. Its FilePaths reference the
