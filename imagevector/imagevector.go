@@ -6,6 +6,7 @@ package imagevector
 
 import (
 	_ "embed"
+	"strings"
 
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -55,6 +56,8 @@ func FindImage(name string) string {
 	if image.Tag != nil {
 		repository = *image.Repository
 		tag = *image.Tag
+	} else if strings.Contains(tag, "$Format:") || tag == "" {
+		tag = "v0.0.0"
 	}
 	calculatedImage := imagevector.Image{
 		Repository: &repository,

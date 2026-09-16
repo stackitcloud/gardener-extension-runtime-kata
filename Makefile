@@ -15,6 +15,8 @@ REPO_ROOT                   := $(shell dirname $(realpath $(lastword $(MAKEFILE_
 HACK_DIR                    := $(REPO_ROOT)/hack
 VERSION                     := $(shell git describe --tag --always --dirty)
 TAG                         := $(VERSION)
+GIT_COMMIT                  := $(shell git rev-parse --verify HEAD 2>/dev/null || true)
+BUILD_DATE                  := $(shell date '+%Y-%m-%dT%H:%M:%SZ')
 LEADER_ELECTION             := false
 
 # The Kata Containers release that is installed on the nodes. This is the single source of truth;
@@ -25,7 +27,12 @@ KATA_VERSION                := 4.1.0
 # without also changing the kata version at the same time
 KATA_PACKAGE_RELEASE        := 1
 
-LD_FLAGS                    := -w -X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.Version=$(KATA_VERSION) -X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.PackageRelease=$(KATA_PACKAGE_RELEASE)
+LD_FLAGS                    := -w \
+	-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.Version=$(KATA_VERSION) \
+	-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.PackageRelease=$(KATA_PACKAGE_RELEASE) \
+	-X k8s.io/component-base/version.gitVersion=$(VERSION) \
+	-X k8s.io/component-base/version.gitCommit=$(GIT_COMMIT) \
+	-X k8s.io/component-base/version.buildDate=$(BUILD_DATE)
 
 # Directory into which the kata-static tarball is downloaded so that `ko` bundles it into the
 # installation image as kodata (available at /var/run/ko/ in the image).
@@ -138,7 +145,7 @@ check-generate: ## Check if generate target has been run
 
 .PHONY: check
 check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golangci-lint, gofmt/goimports and checks the chart for validity
-	@bash $(GARDENER_HACK_DIR)/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/... ./test...
+	@bash $(GARDENER_HACK_DIR)/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/... ./imagevector/... ./test...
 	@bash $(GARDENER_HACK_DIR)/check-charts.sh ./charts
 
 .PHONY: generate
@@ -148,7 +155,7 @@ generate: $(CONTROLLER_GEN) $(CRD_REF_DOCS) $(HELM) $(YQ) $(GOIMPORTS) ## Genera
 
 .PHONY: format
 format: $(GOIMPORTS) $(GOIMPORTSREVISER) ## Formats all files in ./cmd, ./pkg and ./test
-	@bash $(GARDENER_HACK_DIR)/format.sh ./cmd ./pkg ./test
+	@bash $(GARDENER_HACK_DIR)/format.sh ./cmd ./pkg ./test ./imagevector
 
 .PHONY: check-format
 check-format: format
@@ -158,7 +165,7 @@ check-format: format
 
 .PHONY: test
 test: ## Runs the unit-test suite
-	@LD_FLAGS="$(LD_FLAGS)" $(HACK_DIR)/test.sh ./cmd/... ./pkg/...
+	@LD_FLAGS="$(LD_FLAGS)" $(HACK_DIR)/test.sh ./cmd/... ./pkg/... ./imagevector/...
 
 .PHONY: verify
 verify: check check-format test ## Run check, format and test
