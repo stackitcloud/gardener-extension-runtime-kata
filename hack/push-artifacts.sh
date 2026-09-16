@@ -126,10 +126,13 @@ mkdir -p "$helm_artifacts"
 chart_build_dir="${helm_artifacts}/${chart_name}"
 cp -r "${REPO_ROOT}/charts/${chart_name}/." "$chart_build_dir"
 
-CONTROLLER_REPO="$(image_repo "$controller_image")"
+controller_repo="$(image_repo "$controller_image")"
+installation_repo="$(image_repo "$installation_image")"
+
+CONTROLLER_REPO="$controller_repo"
 CONTROLLER_TAG="$(image_tag_with_digest "$controller_image")"
 INSTALLATION_NAME="$installation_imagevector_name"
-INSTALLATION_REPO="$(image_repo "$installation_image")"
+INSTALLATION_REPO="$installation_repo"
 INSTALLATION_TAG="$(image_tag_pushed "$installation_image")"
 export CONTROLLER_REPO CONTROLLER_TAG INSTALLATION_NAME INSTALLATION_REPO INSTALLATION_TAG
 
@@ -148,13 +151,26 @@ unset CONTROLLER_REPO CONTROLLER_TAG INSTALLATION_NAME INSTALLATION_REPO INSTALL
 raw_version="$(image_tag "$controller_image")"
 chart_version="${raw_version#v}"
 
-if ! printf '%s' "$chart_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.].*)?$'; then
+if ! printf '%s' "$chart_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.+].*)?$'; then
   sanitized="$(printf '%s' "$chart_version" | tr -c 'A-Za-z0-9' '-' | sed -E 's/-+/-/g; s/^-//; s/-$//')"
   if [ -z "$sanitized" ]; then
     sanitized="unknown"
   fi
   chart_version="0.0.0-${sanitized}"
   echo "note: tag '${raw_version}' is not SemVer; using chart version '${chart_version}'"
+fi
+
+# Propagate '-dev' suffix to chart version for dev builds (where the image repository ends in -dev).
+if [[ "$controller_repo" == *-dev ]]; then
+  if [[ "$chart_version" == *+* ]]; then
+    base_version="${chart_version%%+*}"
+    build_meta="${chart_version#*+}"
+    if [[ "$base_version" != *-dev ]]; then
+      chart_version="${base_version}-dev+${build_meta}"
+    fi
+  elif [[ "$chart_version" != *-dev ]]; then
+    chart_version="${chart_version}-dev"
+  fi
 fi
 
 # OCI tags forbid '+' characters (allowed in SemVer 2 build metadata).
