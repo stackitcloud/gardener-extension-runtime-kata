@@ -124,6 +124,10 @@ var _ = Describe("Mutator", func() {
 			Expect(tarball).NotTo(BeNil())
 			Expect(tarball.Content.ImageRef).NotTo(BeNil())
 			Expect(tarball.Content.ImageRef.FilePathInImage).To(Equal(tarballPathInImage))
+			Expect(tarball.Content.ImageRef.Image).NotTo(BeEmpty())
+			Expect(tarball.Content.ImageRef.Image).NotTo(ContainSubstring("$Format:"))
+			Expect(tarball.Content.ImageRef.Image).NotTo(ContainSubstring("$"))
+			Expect(tarball.Content.ImageRef.Image).To(ContainSubstring(kata.RuntimeKataInstallationImageName))
 
 			By("delivering the install script inline")
 			script := fileByPath(osc.Spec.Files, installScriptPath)
