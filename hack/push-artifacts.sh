@@ -144,23 +144,7 @@ yq -i '
 
 unset CONTROLLER_REPO CONTROLLER_TAG INSTALLATION_NAME INSTALLATION_REPO INSTALLATION_TAG
 
-# A throwaway tag like "dev-kata-test" or a bare commit sha is not valid SemVer, so fall back to a
-# valid 0.0.0 pre-release built from the (sanitized) tag.
-raw_version="$(image_tag "$controller_image")"
-chart_version="$raw_version"
-
-if ! printf '%s' "$chart_version" | grep -Eq '^v?[0-9]+\.[0-9]+\.[0-9]+([-.+].*)?$'; then
-  v_prefix=""
-  if [[ "$raw_version" == v* ]]; then
-    v_prefix="v"
-  fi
-  sanitized="$(printf '%s' "${raw_version#v}" | tr -c 'A-Za-z0-9' '-' | sed -E 's/-+/-/g; s/^-//; s/-$//')"
-  if [ -z "$sanitized" ]; then
-    sanitized="unknown"
-  fi
-  chart_version="${v_prefix}0.0.0-${sanitized}"
-  echo "note: tag '${raw_version}' is not SemVer; using chart version '${chart_version}'"
-fi
+chart_version="$(image_tag "$controller_image")"
 
 # Propagate '-dev' suffix to chart version for dev builds (where the image repository ends in -dev).
 if [[ "$controller_repo" == *-dev ]]; then
