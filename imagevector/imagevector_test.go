@@ -22,6 +22,7 @@ var _ = Describe("ImageVector", func() {
 			Expect(img).NotTo(ContainSubstring("$"))
 			Expect(img).NotTo(ContainSubstring("%"))
 			Expect(img).To(MatchRegexp(`^.+/[a-zA-Z0-9_.-]+:[a-zA-Z0-9_.-]+$`))
+			Expect(img).To(HaveSuffix(":" + kata.PackageVersion))
 		})
 	})
 })
