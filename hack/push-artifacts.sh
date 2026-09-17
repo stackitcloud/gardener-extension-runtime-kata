@@ -144,8 +144,6 @@ yq -i '
 
 unset CONTROLLER_REPO CONTROLLER_TAG INSTALLATION_NAME INSTALLATION_REPO INSTALLATION_TAG
 
-# Chart versions retain any leading 'v' from image tags (e.g. v1.2.3, v0.0.0, git-describe)
-# so the pushed OCI chart version matches the controller image version.
 # A throwaway tag like "dev-kata-test" or a bare commit sha is not valid SemVer, so fall back to a
 # valid 0.0.0 pre-release built from the (sanitized) tag.
 raw_version="$(image_tag "$controller_image")"
@@ -177,15 +175,13 @@ if [[ "$controller_repo" == *-dev ]]; then
   fi
 fi
 
-# Helm automatically converts '+' in chart versions to '_' when pushing to OCI registries.
-packaged_chart_file="${helm_artifacts}/${chart_name}-${chart_version}.tgz"
-
 if ! helm_package_raw_output=$(helm package "$chart_build_dir" --version "$chart_version" -d "$helm_artifacts" 2>&1); then
   echo "Error: 'helm package' failed:" >&2
   echo "$helm_package_raw_output" >&2
   exit 1
 fi
 
+packaged_chart_file="${helm_artifacts}/${chart_name}-${chart_version}.tgz"
 if [ ! -f "$packaged_chart_file" ]; then
   echo "Error: Expected packaged chart file '${packaged_chart_file}' was not found." >&2
   echo "Helm output:" >&2
