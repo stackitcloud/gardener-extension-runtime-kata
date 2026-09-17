@@ -144,40 +144,12 @@ yq -i '
 
 unset CONTROLLER_REPO CONTROLLER_TAG INSTALLATION_NAME INSTALLATION_REPO INSTALLATION_TAG
 
-# Helm chart versions must follow SemVer 2 (which does not allow a leading 'v').
-# Release/CI tags (v1.2.3, v0.0.0, git-describe) become valid SemVer by stripping any leading 'v'.
-# A throwaway tag like "dev-kata-test" or a bare commit sha is not valid SemVer, so fall back to a
-# valid 0.0.0 pre-release built from the (sanitized) tag.
-raw_version="$(image_tag "$controller_image")"
-chart_version="${raw_version#v}"
-
-if ! printf '%s' "$chart_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.+].*)?$'; then
-  sanitized="$(printf '%s' "$chart_version" | tr -c 'A-Za-z0-9' '-' | sed -E 's/-+/-/g; s/^-//; s/-$//')"
-  if [ -z "$sanitized" ]; then
-    sanitized="unknown"
-  fi
-  chart_version="0.0.0-${sanitized}"
-  echo "note: tag '${raw_version}' is not SemVer; using chart version '${chart_version}'"
-fi
+chart_version="$(image_tag "$controller_image")"
 
 # Propagate '-dev' suffix to chart version for dev builds (where the image repository ends in -dev).
 if [[ "$controller_repo" == *-dev ]]; then
-  if [[ "$chart_version" == *+* ]]; then
-    base_version="${chart_version%%+*}"
-    build_meta="${chart_version#*+}"
-    if [[ "$base_version" != *-dev ]]; then
-      chart_version="${base_version}-dev+${build_meta}"
-    fi
-  elif [[ "$chart_version" != *-dev ]]; then
-    chart_version="${chart_version}-dev"
-  fi
+  chart_version="${chart_version}-dev"
 fi
-
-# OCI tags forbid '+' characters (allowed in SemVer 2 build metadata).
-# Replace '+' with '_' for OCI registry compatibility.
-chart_version="${chart_version//+/_}"
-
-packaged_chart_file="${helm_artifacts}/${chart_name}-${chart_version}.tgz"
 
 if ! helm_package_raw_output=$(helm package "$chart_build_dir" --version "$chart_version" -d "$helm_artifacts" 2>&1); then
   echo "Error: 'helm package' failed:" >&2
@@ -185,6 +157,7 @@ if ! helm_package_raw_output=$(helm package "$chart_build_dir" --version "$chart
   exit 1
 fi
 
+packaged_chart_file="${helm_artifacts}/${chart_name}-${chart_version}.tgz"
 if [ ! -f "$packaged_chart_file" ]; then
   echo "Error: Expected packaged chart file '${packaged_chart_file}' was not found." >&2
   echo "Helm output:" >&2
