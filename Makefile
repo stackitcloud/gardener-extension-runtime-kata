@@ -26,6 +26,11 @@ KATA_VERSION                := 4.1.0
 # Release counter that can be incremented if it becomes necessary to update the kata configuration
 # without also changing the kata version at the same time
 KATA_PACKAGE_RELEASE        := 2
+KATA_PACKAGE_VERSION        := $(KATA_VERSION)-$(KATA_PACKAGE_RELEASE)
+INSTALLATION_TAG            ?= $(KATA_PACKAGE_VERSION)
+INSTALLATION_IMAGE_NAME     := $(EXTENSION_PREFIX)-$(NAME_INSTALLATION)$(REPO_POSTFIX)
+INSTALLATION_IMAGE_REF      ?= $(REPOSITORY)/$(INSTALLATION_IMAGE_NAME):$(INSTALLATION_TAG)
+SKIP_INSTALLATION_IMAGE_BUILD ?= false
 
 LD_FLAGS                    := -w \
 	-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.Version=$(KATA_VERSION) \
@@ -97,15 +102,21 @@ controller-image: $(KO) ## Builds the controller image using ko. Use PUSH=true t
 	| tee controller-images.txt
 
 .PHONY: installation-image
-installation-image: $(KO) install-binaries ## Builds the data-only installation image (kata-static tarball as ko kodata)
+installation-image: $(KO) ## Builds the data-only installation image (kata-static tarball as ko kodata)
+ifeq ($(SKIP_INSTALLATION_IMAGE_BUILD),true)
+	@echo "$(INSTALLATION_IMAGE_REF)" > installation-images.txt
+	@echo "Using pre-built installation image: $(INSTALLATION_IMAGE_REF)"
+else
+	@$(MAKE) install-binaries
 	# The installation image only carries data (the tarball as kodata at /var/run/ko/); it is never run.
 	# It is amd64-only for now, because the kata-static payload is architecture-specific.
-	KO_DOCKER_REPO=$(REPOSITORY)/$(EXTENSION_PREFIX)-$(NAME_INSTALLATION)$(REPO_POSTFIX) \
+	KO_DOCKER_REPO=$(REPOSITORY)/$(INSTALLATION_IMAGE_NAME) \
 	$(KO) build --image-label org.opencontainers.image.source="https://github.com/stackitcloud/gardener-extension-runtime-kata" \
-	--sbom none -t $(TAG) --bare \
+	--sbom none -t $(INSTALLATION_TAG) --bare \
 	--platform linux/amd64 --push=$(PUSH) \
 	./cmd/$(EXTENSION_PREFIX)-$(NAME_INSTALLATION) \
 	| tee installation-images.txt
+endif
 
 .PHONY: generate-images-json
 generate-images-json: images.json ## Generates a JSON file with all images used in the project

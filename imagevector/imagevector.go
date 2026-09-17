@@ -10,7 +10,6 @@ import (
 
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/component-base/version"
 
 	"github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata"
 )
@@ -51,13 +50,13 @@ func FindImage(name string) string {
 
 	var (
 		repository = image.String()
-		tag        = version.Get().GitVersion
+		tag        = kata.PackageVersion
 	)
 	if image.Tag != nil {
 		repository = *image.Repository
 		tag = *image.Tag
 	} else if strings.Contains(tag, "$Format:") || tag == "" {
-		tag = "v0.0.0"
+		tag = kata.PackageVersion
 	}
 	calculatedImage := imagevector.Image{
 		Repository: &repository,
