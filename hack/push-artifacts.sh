@@ -148,15 +148,7 @@ chart_version="$(image_tag "$controller_image")"
 
 # Propagate '-dev' suffix to chart version for dev builds (where the image repository ends in -dev).
 if [[ "$controller_repo" == *-dev ]]; then
-  if [[ "$chart_version" == *+* ]]; then
-    base_version="${chart_version%%+*}"
-    build_meta="${chart_version#*+}"
-    if [[ "$base_version" != *-dev ]]; then
-      chart_version="${base_version}-dev+${build_meta}"
-    fi
-  elif [[ "$chart_version" != *-dev ]]; then
-    chart_version="${chart_version}-dev"
-  fi
+  chart_version="${chart_version}-dev"
 fi
 
 if ! helm_package_raw_output=$(helm package "$chart_build_dir" --version "$chart_version" -d "$helm_artifacts" 2>&1); then
