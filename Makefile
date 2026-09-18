@@ -19,8 +19,8 @@ GIT_COMMIT                  := $(shell git rev-parse --verify HEAD 2>/dev/null |
 BUILD_DATE                  := $(shell date '+%Y-%m-%dT%H:%M:%SZ')
 LEADER_ELECTION             := false
 
-# The Kata Containers release that is installed on the nodes. This is the single source of truth;
-# injected into the controller binary via ldflags (-X .../pkg/kata.Version=...).
+# The Kata Containers release that is installed on the nodes. This is used to build
+# the default installation image.
 # renovate: datasource=github-releases depName=kata-containers/kata-containers
 KATA_VERSION                := 4.1.0
 # Release counter that can be incremented if it becomes necessary to update the kata configuration
@@ -33,8 +33,6 @@ INSTALLATION_IMAGE_REF      ?= $(REPOSITORY)/$(INSTALLATION_IMAGE_NAME):$(INSTAL
 SKIP_INSTALLATION_IMAGE_BUILD ?= false
 
 LD_FLAGS                    := -w \
-	-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.Version=$(KATA_VERSION) \
-	-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.PackageRelease=$(KATA_PACKAGE_RELEASE) \
 	-X k8s.io/component-base/version.gitVersion=$(VERSION) \
 	-X k8s.io/component-base/version.gitCommit=$(GIT_COMMIT) \
 	-X k8s.io/component-base/version.buildDate=$(BUILD_DATE)

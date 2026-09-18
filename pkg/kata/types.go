@@ -27,18 +27,6 @@ const (
 )
 
 var (
-	// Version is the Kata Containers release that this extension installs and configures.
-	// Injected at build time via -ldflags "-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.Version=<version>".
-	Version = "0.0.0-dev"
-
-	// PackageRelease is a counter that can be incremented for packaging changes of kata that
-	// do not update the kata version at the same time.
-	// Injected at build time via -ldflags "-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.PackageRelease=<release>".
-	PackageRelease = "0"
-
-	// PackageVersion is the Kata Containers release including a package release counter
-	PackageVersion = Version + "-" + PackageRelease
-
 	// ChartPath is the path to the internal Kata chart.
 	ChartPath = filepath.Join(charts.InternalChartsPath, "kata")
 )

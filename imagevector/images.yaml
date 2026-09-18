@@ -5,3 +5,4 @@ images:
     tag: v0.4.0
     resourceId:
       name: gardener-extension-runtime-kata-installation
+    tag: v4.2.0-1
