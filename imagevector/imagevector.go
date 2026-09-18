@@ -6,11 +6,11 @@ package imagevector
 
 import (
 	_ "embed"
+	"fmt"
 	"strings"
 
 	"github.com/gardener/gardener/pkg/utils/imagevector"
 	"k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/component-base/version"
 
 	"github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata"
 )
@@ -27,41 +27,56 @@ func init() {
 
 	imageVector, caBundle, err = imagevector.Read([]byte(imagesYAML))
 	runtime.Must(err)
-	// image vector for components deployed by the Kata Containers extension
-	imageVector, caBundle, err = imagevector.WithEnvOverride(imageVector, caBundle, imagevector.OverrideEnv)
-	runtime.Must(err)
 
-	_, err = imageVector.FindImage(kata.RuntimeKataInstallationImageName)
+	_, err = ImageVector().FindImage(kata.RuntimeKataInstallationImageName)
 	runtime.Must(err)
 }
 
-// ImageVector is the image vector that contains all the needed images.
+// ImageVector is the image vector that contains all the needed images,
+// with any environment overrides applied.
 func ImageVector() imagevector.ImageVector {
-	return imageVector
+	iv, _, err := imagevector.WithEnvOverride(imageVector, caBundle, imagevector.OverrideEnv)
+	runtime.Must(err)
+	return iv
 }
 
-// FindImage returns the container runtime Kata Containers installation image.
-func FindImage(name string) string {
-	image, err := imageVector.FindImage(name)
-	runtime.Must(err)
+// FindInstallationImage resolves the installation image reference and its Kata version.
+func FindInstallationImage() (string, string, error) {
+	img, err := ImageVector().FindImage(kata.RuntimeKataInstallationImageName)
+	if err != nil {
+		return "", "", err
+	}
+	version, err := VersionFromImage(img)
+	if err != nil {
+		return "", "", err
+	}
+	return img.String(), version, nil
+}
 
-	if image.Ref != nil {
-		return image.String()
+// VersionFromImage extracts the Kata version/tag from an installation image reference.
+func VersionFromImage(img *imagevector.Image) (string, error) {
+	if img == nil {
+		return "", fmt.Errorf("image is nil")
 	}
 
-	var (
-		repository = image.String()
-		tag        = version.Get().GitVersion
-	)
-	if image.Tag != nil {
-		repository = *image.Repository
-		tag = *image.Tag
-	} else if strings.Contains(tag, "$Format:") || tag == "" {
-		tag = "v0.0.0"
+	if img.Tag != nil {
+		tag, _, _ := strings.Cut(*img.Tag, "@")
+		if tag != "" && !strings.HasPrefix(tag, "sha256:") {
+			return tag, nil
+		}
 	}
-	calculatedImage := imagevector.Image{
-		Repository: &repository,
-		Tag:        &tag,
+
+	if img.Ref != nil {
+		ref, _, _ := strings.Cut(*img.Ref, "@")
+		path := ref[strings.LastIndex(ref, "/")+1:]
+		if _, tag, ok := strings.Cut(path, ":"); ok && tag != "" && !strings.HasPrefix(tag, "sha256:") {
+			return tag, nil
+		}
 	}
-	return calculatedImage.String()
+
+	if img.Version != nil && *img.Version != "" && !strings.HasPrefix(*img.Version, "sha256:") {
+		return *img.Version, nil
+	}
+
+	return "", fmt.Errorf("could not determine kata version from image %s", img.String())
 }

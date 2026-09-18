@@ -100,24 +100,29 @@ func (m *mutator) Mutate(ctx context.Context, newObj, _ client.Object) error {
 		return nil
 	}
 
-	m.logger.Info("Installing and configuring Kata Containers", "workerPool", poolName, "shoot", client.ObjectKeyFromObject(cluster.Shoot))
+	installerImage, kataVersion, err := imagevector.FindInstallationImage()
+	if err != nil {
+		return fmt.Errorf("could not resolve Kata installation image: %w", err)
+	}
 
-	if err := ensureCRIConfig(osc.Spec.CRIConfig); err != nil {
+	m.logger.Info("Installing and configuring Kata Containers", "workerPool", poolName, "shoot", client.ObjectKeyFromObject(cluster.Shoot), "version", kataVersion)
+
+	if err := ensureCRIConfig(osc.Spec.CRIConfig, kataVersion); err != nil {
 		return err
 	}
-	ensureFiles(&osc.Spec.Files)
-	ensureUnits(&osc.Spec.Units)
+	ensureFiles(&osc.Spec.Files, installerImage, kataVersion)
+	ensureUnits(&osc.Spec.Units, kataVersion)
 
 	return nil
 }
 
 // ensureCRIConfig appends the Kata containerd runtime handlers to the structured containerd config
-func ensureCRIConfig(criConfig *extensionsv1alpha1.CRIConfig) error {
+func ensureCRIConfig(criConfig *extensionsv1alpha1.CRIConfig, version string) error {
 	for _, handler := range kataHandlers {
 		// node-agent translates the path to work with containerd v1 and v2
 		path := []string{"io.containerd.grpc.v1.cri", "containerd", "runtimes", handler.name}
 
-		values, err := handler.values()
+		values, err := handler.values(version)
 		if err != nil {
 			return fmt.Errorf("could not marshal containerd runtime handler config for %q: %w", handler.name, err)
 		}
@@ -133,15 +138,12 @@ func ensureCRIConfig(criConfig *extensionsv1alpha1.CRIConfig) error {
 
 // ensureFiles adds the OSC files that deliver the Kata payload: the kata-static tarball (pulled from
 // the installation image by node-agent) and the inline install script.
-func ensureFiles(files *[]extensionsv1alpha1.File) {
-	// FindImage resolves the fully-qualified installation image reference (repository + tag).
-	installerImage := imagevector.FindImage(kata.RuntimeKataInstallationImageName)
-
+func ensureFiles(files *[]extensionsv1alpha1.File, installerImage, version string) {
 	desired := []extensionsv1alpha1.File{
 		{
 			// Version-stamped download path: a Kata upgrade delivers a new tarball at a new path, which
 			// changes the install unit's FilePaths and re-triggers the installation.
-			Path:        tarballPath(),
+			Path:        tarballPath(version),
 			Permissions: ptr.To[uint32](0644),
 			Content: extensionsv1alpha1.FileContent{
 				ImageRef: &extensionsv1alpha1.FileContentImageRef{
@@ -156,7 +158,7 @@ func ensureFiles(files *[]extensionsv1alpha1.File) {
 			Content: extensionsv1alpha1.FileContent{
 				Inline: &extensionsv1alpha1.FileContentInline{
 					Encoding: string(extensionsv1alpha1.PlainFileCodecID),
-					Data:     installScript(""),
+					Data:     installScript("", version),
 				},
 			},
 		},
@@ -170,13 +172,13 @@ func ensureFiles(files *[]extensionsv1alpha1.File) {
 // ensureUnits adds the oneshot systemd unit that unpacks the Kata payload. Its FilePaths reference the
 // tarball and the install script, so node-agent restarts the unit whenever either changes (e.g. a
 // Kata version bump), which re-runs the (idempotent) installation.
-func ensureUnits(units *[]extensionsv1alpha1.Unit) {
+func ensureUnits(units *[]extensionsv1alpha1.Unit, version string) {
 	unit := extensionsv1alpha1.Unit{
 		Name:      installUnitName,
 		Enable:    new(true),
 		Command:   ptr.To(extensionsv1alpha1.CommandStart),
 		Content:   new(installUnitContent),
-		FilePaths: []string{tarballPath(), installScriptPath},
+		FilePaths: []string{tarballPath(version), installScriptPath},
 	}
 	upsertUnit(units, unit)
 }
@@ -195,13 +197,13 @@ WantedBy=multi-user.target
 `
 
 // tarballPath is the on-node path of the (version-stamped) Kata tarball delivered via imageRef.
-func tarballPath() string {
-	return fmt.Sprintf("%s/kata-static-%s.tar.gz", downloadDir, kata.PackageVersion)
+func tarballPath(version string) string {
+	return fmt.Sprintf("%s/kata-static-%s.tar.gz", downloadDir, version)
 }
 
 // installScript is the on-node installation script. It unpacks the tarball to the version-stamped
 // directory, rewrites Kata's own config paths, and garbage collects old installations. It is idempotent.
-func installScript(pathPrefix string) string {
+func installScript(pathPrefix, version string) string {
 	return fmt.Sprintf(`#!/bin/sh
 set -eu
 
@@ -247,7 +249,7 @@ done
 "${INSTALL_DIR}"/bin/kata-runtime --config "${INSTALL_DIR}"/share/defaults/kata-containers/runtime-rs/configuration-clh-runtime-rs.toml check
 
 echo "Kata ${VERSION} installed."
-`, kata.PackageVersion, kata.InstallationDir, tarballPath(), pathPrefix)
+`, version, kata.InstallationDir, tarballPath(version), pathPrefix)
 }
 
 // workerPoolUsesKata reports whether the named worker pool requests the kata container runtime.
@@ -266,7 +268,7 @@ func workerPoolUsesKata(shoot *gardencorev1beta1.Shoot, poolName string) bool {
 }
 
 // values builds the containerd runtime handler options for this Kata handler.
-func (h kataHandler) values() (*apiextensionsv1.JSON, error) {
+func (h kataHandler) values(version string) (*apiextensionsv1.JSON, error) {
 	config := runtimeHandlerConfig{
 		// Both handlers share the canonical single-shim runtime type; they differ only by ConfigPath
 		// (the hypervisor selector), so no per-hypervisor shim binaries or symlinks are needed on the node.
@@ -274,14 +276,14 @@ func (h kataHandler) values() (*apiextensionsv1.JSON, error) {
 		PrivilegedWithoutHostDevices: true,
 		// Version-stamped shim path: containerd invokes the shim directly from the installation
 		// directory. This allows for atomic switches of the kata version.
-		RuntimePath: fmt.Sprintf("%s/%s/runtime-rs/bin/containerd-shim-kata-v2", kata.InstallationDir, kata.PackageVersion),
+		RuntimePath: fmt.Sprintf("%s/%s/runtime-rs/bin/containerd-shim-kata-v2", kata.InstallationDir, version),
 		// Kata reads sandbox sizing / configuration from these annotations.
 		PodAnnotations:       []string{"io.katacontainers.*"},
 		ContainerAnnotations: []string{"io.katacontainers.*"},
 		Options: runtimeHandlerOptions{
 			// Version-stamped path: a Kata upgrade installs to a new /opt/kata/<version>/ directory and
 			// gets a fresh ConfigPath, so a running version's configuration is never overwritten in place.
-			ConfigPath: fmt.Sprintf("%s/%s/share/defaults/kata-containers/runtime-rs/%s", kata.InstallationDir, kata.PackageVersion, h.configFile),
+			ConfigPath: fmt.Sprintf("%s/%s/share/defaults/kata-containers/runtime-rs/%s", kata.InstallationDir, version, h.configFile),
 		},
 	}
 

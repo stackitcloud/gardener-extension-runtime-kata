@@ -19,17 +19,14 @@ GIT_COMMIT                  := $(shell git rev-parse --verify HEAD 2>/dev/null |
 BUILD_DATE                  := $(shell date '+%Y-%m-%dT%H:%M:%SZ')
 LEADER_ELECTION             := false
 
-# The Kata Containers release that is installed on the nodes. This is the single source of truth;
-# injected into the controller binary via ldflags (-X .../pkg/kata.Version=...).
-# renovate: datasource=github-releases depName=kata-containers/kata-containers
-KATA_VERSION                := 4.1.0
-# Release counter that can be incremented if it becomes necessary to update the kata configuration
-# without also changing the kata version at the same time
-KATA_PACKAGE_RELEASE        := 1
+include $(REPO_ROOT)/KATA_VERSION
+KATA_PACKAGE_VERSION        := $(KATA_VERSION)-$(KATA_PACKAGE_RELEASE)
+INSTALLATION_TAG            ?= $(KATA_PACKAGE_VERSION)
+INSTALLATION_IMAGE_NAME     := $(EXTENSION_PREFIX)-$(NAME_INSTALLATION)$(REPO_POSTFIX)
+INSTALLATION_IMAGE_REF      ?= $(REPOSITORY)/$(INSTALLATION_IMAGE_NAME):$(INSTALLATION_TAG)
+SKIP_INSTALLATION_IMAGE_BUILD ?= false
 
 LD_FLAGS                    := -w \
-	-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.Version=$(KATA_VERSION) \
-	-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.PackageRelease=$(KATA_PACKAGE_RELEASE) \
 	-X k8s.io/component-base/version.gitVersion=$(VERSION) \
 	-X k8s.io/component-base/version.gitCommit=$(GIT_COMMIT) \
 	-X k8s.io/component-base/version.buildDate=$(BUILD_DATE)
@@ -73,7 +70,7 @@ $(shell mkdir -p $(INSTALLATION_KODATA_DIR)/..; \
 	fi)
 
 # Target depends on the script, the version file, and the contents of INSTALLATION_KODATA_DIR
-$(KATA_SENTINEL): $(HACK_DIR)/install-binaries.sh $(VERSION_FILE) $(wildcard $(INSTALLATION_KODATA_DIR)/*)
+$(KATA_SENTINEL): $(HACK_DIR)/install-binaries.sh $(REPO_ROOT)/KATA_VERSION $(VERSION_FILE) $(wildcard $(INSTALLATION_KODATA_DIR)/*)
 	@mkdir -p $(INSTALLATION_KODATA_DIR)
 	@KATA_ARTIFACTS_DIR=$(INSTALLATION_KODATA_DIR) $(HACK_DIR)/install-binaries.sh $(KATA_VERSION)
 	@touch $@
@@ -97,15 +94,21 @@ controller-image: $(KO) ## Builds the controller image using ko. Use PUSH=true t
 	| tee controller-images.txt
 
 .PHONY: installation-image
-installation-image: $(KO) install-binaries ## Builds the data-only installation image (kata-static tarball as ko kodata)
+installation-image: $(KO) ## Builds the data-only installation image (kata-static tarball as ko kodata)
+ifeq ($(SKIP_INSTALLATION_IMAGE_BUILD),true)
+	@echo "$(INSTALLATION_IMAGE_REF)" > installation-images.txt
+	@echo "Using pre-built installation image: $(INSTALLATION_IMAGE_REF)"
+else
+	@$(MAKE) install-binaries
 	# The installation image only carries data (the tarball as kodata at /var/run/ko/); it is never run.
 	# It is amd64-only for now, because the kata-static payload is architecture-specific.
-	KO_DOCKER_REPO=$(REPOSITORY)/$(EXTENSION_PREFIX)-$(NAME_INSTALLATION)$(REPO_POSTFIX) \
+	KO_DOCKER_REPO=$(REPOSITORY)/$(INSTALLATION_IMAGE_NAME) \
 	$(KO) build --image-label org.opencontainers.image.source="https://github.com/stackitcloud/gardener-extension-runtime-kata" \
-	--sbom none -t $(TAG) --bare \
+	--sbom none -t $(INSTALLATION_TAG) --bare \
 	--platform linux/amd64 --push=$(PUSH) \
 	./cmd/$(EXTENSION_PREFIX)-$(NAME_INSTALLATION) \
 	| tee installation-images.txt
+endif
 
 .PHONY: generate-images-json
 generate-images-json: images.json ## Generates a JSON file with all images used in the project
@@ -151,6 +154,7 @@ check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golangci-lint, gofmt/goimpo
 .PHONY: generate
 generate: $(CONTROLLER_GEN) $(CRD_REF_DOCS) $(HELM) $(YQ) $(GOIMPORTS) ## Generates code, the controller-registration and the API reference docs
 	@REPO_ROOT=$(REPO_ROOT) GARDENER_HACK_DIR=$(GARDENER_HACK_DIR) bash $(GARDENER_HACK_DIR)/generate-sequential.sh ./charts/... ./cmd/... ./example/... ./pkg/...
+	@$(YQ) -i '(.images[] | select(.name == "$(NAME_INSTALLATION)")).tag = "$(INSTALLATION_TAG)"' $(REPO_ROOT)/imagevector/images.yaml
 	$(MAKE) format
 
 .PHONY: format

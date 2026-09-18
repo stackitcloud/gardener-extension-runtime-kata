@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/stackitcloud/gardener-extension-runtime-kata/imagevector"
 	"github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata"
 )
 
@@ -114,13 +115,19 @@ var _ = Describe("Mutator", func() {
 			newMutatorWith(makeCluster(makeShoot(kata.Type)))
 			osc := makeOSC(true)
 
+			installerImage, expectedVersion, err := imagevector.FindInstallationImage()
+			Expect(err).NotTo(HaveOccurred())
+
 			Expect(m.Mutate(ctx, osc, nil)).To(Succeed())
 
 			By("adding the containerd runtime handlers")
 			Expect(handlerNames(osc.Spec.CRIConfig)).To(ConsistOf("kata-qemu", "kata-clh"))
+			for _, plugin := range osc.Spec.CRIConfig.Containerd.Plugins {
+				Expect(string(plugin.Values.Raw)).To(ContainSubstring(expectedVersion))
+			}
 
 			By("delivering the tarball via imageRef")
-			tarball := fileByPath(osc.Spec.Files, tarballPath())
+			tarball := fileByPath(osc.Spec.Files, tarballPath(expectedVersion))
 			Expect(tarball).NotTo(BeNil())
 			Expect(tarball.Content.ImageRef).NotTo(BeNil())
 			Expect(tarball.Content.ImageRef.FilePathInImage).To(Equal(tarballPathInImage))
@@ -128,17 +135,71 @@ var _ = Describe("Mutator", func() {
 			Expect(tarball.Content.ImageRef.Image).NotTo(ContainSubstring("$Format:"))
 			Expect(tarball.Content.ImageRef.Image).NotTo(ContainSubstring("$"))
 			Expect(tarball.Content.ImageRef.Image).To(ContainSubstring(kata.RuntimeKataInstallationImageName))
+			Expect(tarball.Content.ImageRef.Image).To(Equal(installerImage))
 
 			By("delivering the install script inline")
 			script := fileByPath(osc.Spec.Files, installScriptPath)
 			Expect(script).NotTo(BeNil())
 			Expect(script.Content.Inline).NotTo(BeNil())
-			Expect(script.Content.Inline.Data).To(ContainSubstring(kata.PackageVersion))
+			Expect(script.Content.Inline.Data).To(ContainSubstring(expectedVersion))
 
 			By("adding the install unit with change-triggering FilePaths")
 			Expect(osc.Spec.Units).To(HaveLen(1))
 			Expect(osc.Spec.Units[0].Name).To(Equal(installUnitName))
-			Expect(osc.Spec.Units[0].FilePaths).To(ConsistOf(tarballPath(), installScriptPath))
+			Expect(osc.Spec.Units[0].FilePaths).To(ConsistOf(tarballPath(expectedVersion), installScriptPath))
+		})
+
+		It("uses the kata version from imageVectorOverwrite when provided", func() {
+			overwriteContent := `images:
+  - name: runtime-kata-installation
+    repository: ghcr.io/stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata-installation
+    tag: 9.9.9-test
+`
+			overwriteFile := filepath.Join(GinkgoT().TempDir(), "imagevector-overwrite.yaml")
+			Expect(os.WriteFile(overwriteFile, []byte(overwriteContent), 0600)).To(Succeed())
+			GinkgoT().Setenv("IMAGEVECTOR_OVERWRITE", overwriteFile)
+
+			newMutatorWith(makeCluster(makeShoot(kata.Type)))
+			osc := makeOSC(true)
+
+			Expect(m.Mutate(ctx, osc, nil)).To(Succeed())
+
+			tarball := fileByPath(osc.Spec.Files, tarballPath("9.9.9-test"))
+			Expect(tarball).NotTo(BeNil())
+			Expect(tarball.Content.ImageRef.Image).To(HaveSuffix(":9.9.9-test"))
+
+			script := fileByPath(osc.Spec.Files, installScriptPath)
+			Expect(script).NotTo(BeNil())
+			Expect(script.Content.Inline.Data).To(ContainSubstring(`VERSION="9.9.9-test"`))
+
+			Expect(osc.Spec.Units[0].FilePaths).To(ConsistOf(tarballPath("9.9.9-test"), installScriptPath))
+
+			for _, plugin := range osc.Spec.CRIConfig.Containerd.Plugins {
+				Expect(string(plugin.Values.Raw)).To(ContainSubstring("9.9.9-test"))
+			}
+		})
+
+		It("uses the kata version from imageVectorOverwrite when ref is provided", func() {
+			overwriteContent := `images:
+  - name: runtime-kata-installation
+    ref: custom-registry.io/custom-repo/gardener-extension-runtime-kata-installation:v5.0.0-custom
+`
+			overwriteFile := filepath.Join(GinkgoT().TempDir(), "imagevector-overwrite-ref.yaml")
+			Expect(os.WriteFile(overwriteFile, []byte(overwriteContent), 0600)).To(Succeed())
+			GinkgoT().Setenv("IMAGEVECTOR_OVERWRITE", overwriteFile)
+
+			newMutatorWith(makeCluster(makeShoot(kata.Type)))
+			osc := makeOSC(true)
+
+			Expect(m.Mutate(ctx, osc, nil)).To(Succeed())
+
+			tarball := fileByPath(osc.Spec.Files, tarballPath("v5.0.0-custom"))
+			Expect(tarball).NotTo(BeNil())
+			Expect(tarball.Content.ImageRef.Image).To(Equal("custom-registry.io/custom-repo/gardener-extension-runtime-kata-installation:v5.0.0-custom"))
+
+			script := fileByPath(osc.Spec.Files, installScriptPath)
+			Expect(script).NotTo(BeNil())
+			Expect(script.Content.Inline.Data).To(ContainSubstring(`VERSION="v5.0.0-custom"`))
 		})
 
 		It("does not mutate when the worker pool does not use kata", func() {
@@ -185,15 +246,17 @@ var _ = Describe("Mutator", func() {
 
 // Use Ordered to ensure that script content is checked first
 var _ = Describe("Install Script", Ordered, func() {
+	const testVersion = "v4.2.0-1"
+
 	It("should correctly include path prefix", func() {
-		script := installScript("/tmp/folder")
+		script := installScript("/tmp/folder", testVersion)
 		Expect(script).To(Equal(`#!/bin/sh
 set -eu
 
-VERSION="` + kata.PackageVersion + `"
+VERSION="` + testVersion + `"
 INSTALL_ROOT=/tmp/folder"/opt/kata"
 INSTALL_DIR="${INSTALL_ROOT}/${VERSION}"
-ARTIFACT=/tmp/folder"/opt/kata/downloads/kata-static-` + kata.PackageVersion + `.tar.gz"
+ARTIFACT=/tmp/folder"/opt/kata/downloads/kata-static-` + testVersion + `.tar.gz"
 
 if [ ! -f "${INSTALL_DIR}/.installed" ]; then
   echo "Installing Kata ${VERSION} into ${INSTALL_DIR} ..."
@@ -239,7 +302,7 @@ echo "Kata ${VERSION} installed."
 		tempDir := GinkgoT().TempDir()
 		downloadsDir := filepath.Join(tempDir, "opt", "kata", "downloads")
 		Expect(os.MkdirAll(downloadsDir, 0750)).To(Succeed())
-		tarPath := filepath.Join(downloadsDir, "kata-static-"+kata.PackageVersion+".tar.gz")
+		tarPath := filepath.Join(downloadsDir, "kata-static-"+testVersion+".tar.gz")
 		createMinimalTarGz(tarPath)
 
 		// Set up older versions to verify garbage collection prunes all older versions
@@ -257,14 +320,14 @@ echo "Kata ${VERSION} installed."
 		Expect(os.WriteFile(stubShim, []byte(""), 0700)).To(Succeed())
 
 		scriptPath := filepath.Join(tempDir, "install.sh")
-		script := installScript(tempDir)
+		script := installScript(tempDir, testVersion)
 		// #nosec G306 file needs to be executable
 		Expect(os.WriteFile(scriptPath, []byte(script), 0750)).To(Succeed())
 		// #nosec G204 script path is fully controlled by test case
 		cmd := exec.Command("bash", scriptPath)
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "Script failed with output: %s", string(output))
-		installedFile := filepath.Join(tempDir, "opt", "kata", kata.PackageVersion, ".installed")
+		installedFile := filepath.Join(tempDir, "opt", "kata", testVersion, ".installed")
 		Expect(installedFile).To(BeAnExistingFile())
 
 		// Verify that all older versions were pruned. share contains the majority of the data
@@ -275,20 +338,20 @@ echo "Kata ${VERSION} installed."
 		// shim must still exist
 		Expect(stubShim).To(BeARegularFile())
 
-		configFile := filepath.Join(tempDir, "opt", "kata", kata.PackageVersion, "share", "defaults", "kata-containers", "runtime-rs", "configuration-example.toml")
+		configFile := filepath.Join(tempDir, "opt", "kata", testVersion, "share", "defaults", "kata-containers", "runtime-rs", "configuration-example.toml")
 		// #nosec G304 path is fully controlled by test case
 		content, err := os.ReadFile(configFile)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(string(content)).To(Equal("[hypervisor.qemu]\npath = \"" + tempDir + "/opt/kata/" + kata.PackageVersion + "/bin/qemu-system-x86_64\"\n"))
+		Expect(string(content)).To(Equal("[hypervisor.qemu]\npath = \"" + tempDir + "/opt/kata/" + testVersion + "/bin/qemu-system-x86_64\"\n"))
 
-		wrapperFile := filepath.Join(tempDir, "opt", "kata", kata.PackageVersion, "bin", "qemu-system-x86_64-wrapper")
+		wrapperFile := filepath.Join(tempDir, "opt", "kata", testVersion, "bin", "qemu-system-x86_64-wrapper")
 		// #nosec G304 path is fully controlled by test case
 		content, err = os.ReadFile(wrapperFile)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(content)).To(Equal(`#!/bin/sh
 
 # inject correct firmware path
-exec ` + tempDir + "/opt/kata/" + kata.PackageVersion + `/bin/qemu-system-x86_64 "$@" -L ` + tempDir + "/opt/kata/" + kata.PackageVersion + `/share/kata-qemu/qemu/
+exec ` + tempDir + "/opt/kata/" + testVersion + `/bin/qemu-system-x86_64 "$@" -L ` + tempDir + "/opt/kata/" + testVersion + `/share/kata-qemu/qemu/
 `))
 
 		By("rewriting the paths in the qemu and clh runtime-rs configs")
@@ -302,16 +365,16 @@ exec ` + tempDir + "/opt/kata/" + kata.PackageVersion + `/bin/qemu-system-x86_64
 
 		configFiles := make(map[string]string, len(hypervisors))
 		for _, hv := range hypervisors {
-			hvConfigFile := filepath.Join(tempDir, "opt", "kata", kata.PackageVersion, "share", "defaults", "kata-containers", "runtime-rs", "configuration-"+hv.name+"-runtime-rs.toml")
+			hvConfigFile := filepath.Join(tempDir, "opt", "kata", testVersion, "share", "defaults", "kata-containers", "runtime-rs", "configuration-"+hv.name+"-runtime-rs.toml")
 			configFiles[hv.name] = hvConfigFile
 			// #nosec G304 path is fully controlled by test case
 			hvContent, err := os.ReadFile(hvConfigFile)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(hvContent)).To(Equal("[hypervisor." + hv.name + "]\npath = \"" + tempDir + "/opt/kata/" + kata.PackageVersion + "/bin/" + hv.binary + "\"\n"))
+			Expect(string(hvContent)).To(Equal("[hypervisor." + hv.name + "]\npath = \"" + tempDir + "/opt/kata/" + testVersion + "/bin/" + hv.binary + "\"\n"))
 		}
 
 		By("invoking kata-runtime check against both hypervisor configs")
-		invocationLog := filepath.Join(tempDir, "opt", "kata", kata.PackageVersion, "kata-runtime-invocations.log")
+		invocationLog := filepath.Join(tempDir, "opt", "kata", testVersion, "kata-runtime-invocations.log")
 		// #nosec G304 path is fully controlled by test case
 		logContent, err := os.ReadFile(invocationLog)
 		Expect(err).ToNot(HaveOccurred(), "expected kata-runtime to have been invoked")
