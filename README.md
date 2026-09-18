@@ -84,7 +84,7 @@ Upgrades follow two distinct, decoupled release lifecycles:
   reference remains identical. Deployed Shoot worker nodes require no new downloads or reconciliations.
   Releases can skip rebuilding the installation image with `SKIP_INSTALLATION_IMAGE_BUILD=true`.
 - **Kata upgrades (`<kata-version>-<package-release>`)**: Upstream Kata releases or packaging changes
-  update `KATA_VERSION` and/or `KATA_PACKAGE_RELEASE` in the `Makefile`. Running `make installation-image PUSH=true`
+  update `KATA_VERSION` and/or `KATA_PACKAGE_RELEASE` in the `KATA_VERSION` file. Running `make installation-image PUSH=true`
   builds and publishes the new installation image.
 
 Kata is installed to a version-stamped path and its runtime handlers reference a version-stamped
