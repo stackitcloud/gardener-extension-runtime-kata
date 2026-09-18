@@ -19,13 +19,7 @@ GIT_COMMIT                  := $(shell git rev-parse --verify HEAD 2>/dev/null |
 BUILD_DATE                  := $(shell date '+%Y-%m-%dT%H:%M:%SZ')
 LEADER_ELECTION             := false
 
-# The Kata Containers release that is installed on the nodes. This is used to build
-# the default installation image.
-# renovate: datasource=github-releases depName=kata-containers/kata-containers
-KATA_VERSION                := 4.1.0
-# Release counter that can be incremented if it becomes necessary to update the kata configuration
-# without also changing the kata version at the same time
-KATA_PACKAGE_RELEASE        := 2
+include $(REPO_ROOT)/KATA_VERSION
 KATA_PACKAGE_VERSION        := $(KATA_VERSION)-$(KATA_PACKAGE_RELEASE)
 INSTALLATION_TAG            ?= $(KATA_PACKAGE_VERSION)
 INSTALLATION_IMAGE_NAME     := $(EXTENSION_PREFIX)-$(NAME_INSTALLATION)$(REPO_POSTFIX)
@@ -76,7 +70,7 @@ $(shell mkdir -p $(INSTALLATION_KODATA_DIR)/..; \
 	fi)
 
 # Target depends on the script, the version file, and the contents of INSTALLATION_KODATA_DIR
-$(KATA_SENTINEL): $(HACK_DIR)/install-binaries.sh $(VERSION_FILE) $(wildcard $(INSTALLATION_KODATA_DIR)/*)
+$(KATA_SENTINEL): $(HACK_DIR)/install-binaries.sh $(REPO_ROOT)/KATA_VERSION $(VERSION_FILE) $(wildcard $(INSTALLATION_KODATA_DIR)/*)
 	@mkdir -p $(INSTALLATION_KODATA_DIR)
 	@KATA_ARTIFACTS_DIR=$(INSTALLATION_KODATA_DIR) $(HACK_DIR)/install-binaries.sh $(KATA_VERSION)
 	@touch $@
@@ -160,6 +154,7 @@ check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golangci-lint, gofmt/goimpo
 .PHONY: generate
 generate: $(CONTROLLER_GEN) $(CRD_REF_DOCS) $(HELM) $(YQ) $(GOIMPORTS) ## Generates code, the controller-registration and the API reference docs
 	@REPO_ROOT=$(REPO_ROOT) GARDENER_HACK_DIR=$(GARDENER_HACK_DIR) bash $(GARDENER_HACK_DIR)/generate-sequential.sh ./charts/... ./cmd/... ./example/... ./pkg/...
+	@$(YQ) -i '(.images[] | select(.name == "$(NAME_INSTALLATION)")).tag = "$(INSTALLATION_TAG)"' $(REPO_ROOT)/imagevector/images.yaml
 	$(MAKE) format
 
 .PHONY: format
