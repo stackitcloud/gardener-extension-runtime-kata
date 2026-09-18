@@ -90,8 +90,8 @@ Upgrades follow two distinct, decoupled release lifecycles:
 Kata is installed to a version-stamped path and its runtime handlers reference a version-stamped
 `ConfigPath`, so a Kata version bump installs into a fresh `/opt/kata/<newversion>/` directory and
 never overwrites the binaries or configuration of a version still in use by running workloads. The
-`KATA_VERSION` and `KATA_PACKAGE_RELEASE` variables in the `Makefile` are the single source of truth;
-`pkg/kata.Version` and `pkg/kata.PackageRelease` are set from them via build args (`-ldflags`).
+controller resolves the Kata version dynamically from the configured installation image (via imagevector
+and `imageVectorOverwrite`), decoupling it from controller build-time flags.
 
 Upon deployment of a new kata version, the binaries of the old version get garbage-collected.
 A kata upgrade requires a containerd restart to load the configuration with the updated runtime
@@ -156,7 +156,7 @@ The versioning of the images is decoupled:
 The Helm chart is pushed as an OCI artifact by `hack/push-artifacts.sh`, which also injects the
 installation-image reference into the chart's `imageVectorOverwrite` so the deployed
 controller resolves it (dev and release alike) via `IMAGEVECTOR_OVERWRITE`. When running locally
-without an overwrite, `imagevector.FindImage` defaults to `pkg/kata.PackageVersion`.
+without an overwrite, the controller resolves the installation image and its version from `imagevector/images.yaml`.
 
 ## License & Licensing Compliance
 
