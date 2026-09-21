@@ -179,18 +179,21 @@ done
 
 # --- Force the CLH block storage driver to a value BOTH Kata components accept ---
 #
-# Kata validates block_device_driver/vm_rootfs_driver with two different accepted-name
-# lists: the Go `kata-runtime check` CLI accepts virtio-scsi, virtio-blk, virtio-mmio,
-# nvdimm, virtio-blk-ccw, while the Rust runtime-rs shim (validates on every sandbox
-# creation) accepts virtio-blk-pci, virtio-blk-ccw, virtio-blk-mmio, virtio-pmem,
-# virtio-scsi. The upstream default "virtio-blk-pci" fails the CLI check during
-# installation; "virtio-blk" passes the CLI but the shim rejects it at sandbox creation
-# ("virtio-blk is unsupported block device type"), leaving every kata-clh pod stuck in
-# ContainerCreating. virtio-scsi is the only value both accept (ccw is s390x-only) and
-# is implemented by the runtime-rs CLH backend.
+# Kata validates the CLH block device settings with two different accepted-name lists:
+# the Go `kata-runtime check` CLI (katautils/config.go) accepts virtio-scsi, virtio-blk,
+# virtio-mmio, nvdimm, virtio-blk-ccw, while the Rust runtime-rs shim (kata-types, validated
+# on every sandbox creation) accepts virtio-blk-pci, virtio-blk-ccw, virtio-blk-mmio,
+# virtio-pmem, virtio-scsi. The upstream default "virtio-blk-pci" fails the CLI check
+# during installation; "virtio-blk" passes the CLI but the shim rejects it at sandbox
+# creation ("virtio-blk is unsupported block device type"). virtio-scsi is the only value
+# both accept (ccw is s390x-only) and is implemented by the runtime-rs CLH backend.
+#
+# Only block_device_driver needs rewriting: it is the only setting the Go CLI validates,
+# and vm_rootfs_driver has no effect on CLH anyway — the runtime-rs CLH backend hardcodes
+# the VM rootfs attach to virtio-blk (ch hypervisor: rootfs_driver = VM_ROOTFS_DRIVER_BLK),
+# so the upstream default is kept for it.
 clh_fn="${kroot}/share/defaults/kata-containers/runtime-rs/configuration-clh-runtime-rs.toml"
 sed -i "s#block_device_driver = \"virtio-blk-pci\"#block_device_driver = \"virtio-scsi\"#g" "${clh_fn}"
-sed -i "s#vm_rootfs_driver = \"virtio-blk-pci\"#vm_rootfs_driver = \"virtio-scsi\"#g" "${clh_fn}"
 
 # Fix kata-qemu runtime class. kata currently does not offer a clean way to point
 # qemu to the versioned firmware path. Thus, use a wrapper script instead.
