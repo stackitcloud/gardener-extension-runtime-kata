@@ -2,6 +2,6 @@ images:
   - name: runtime-kata-installation
     sourceRepository: github.com/stackitcloud/gardener-extension-runtime-kata
     repository: ghcr.io/stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata-installation
-    tag: v0.3.1
+    tag: v0.4.0
     resourceId:
       name: gardener-extension-runtime-kata-installation
