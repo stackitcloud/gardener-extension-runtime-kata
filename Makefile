@@ -25,7 +25,7 @@ LEADER_ELECTION             := false
 KATA_VERSION                := 4.1.0
 # Release counter that can be incremented if it becomes necessary to update the kata configuration
 # without also changing the kata version at the same time
-KATA_PACKAGE_RELEASE        := 1
+KATA_PACKAGE_RELEASE        := 2
 
 LD_FLAGS                    := -w \
 	-X github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata.Version=$(KATA_VERSION) \
