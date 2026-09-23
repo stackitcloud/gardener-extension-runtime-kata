@@ -7,6 +7,7 @@ package imagevector
 import (
 	_ "embed"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/gardener/gardener/pkg/utils/imagevector"
@@ -20,6 +21,11 @@ var (
 	imagesYAML  string
 	imageVector imagevector.ImageVector
 	caBundle    *imagevector.CABundle
+
+	// validVersionRegexp matches valid Kata version strings extracted from image tags.
+	// It requires an alphanumeric leading character followed by alphanumeric characters,
+	// dots, hyphens, or underscores, preventing path traversal or script injection in downstream usages.
+	validVersionRegexp = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 )
 
 func init() {
@@ -59,24 +65,34 @@ func VersionFromImage(img *imagevector.Image) (string, error) {
 		return "", fmt.Errorf("image is nil")
 	}
 
+	var version string
+
 	if img.Tag != nil {
 		tag, _, _ := strings.Cut(*img.Tag, "@")
 		if tag != "" && !strings.HasPrefix(tag, "sha256:") {
-			return tag, nil
+			version = tag
 		}
 	}
 
-	if img.Ref != nil {
+	if version == "" && img.Ref != nil {
 		ref, _, _ := strings.Cut(*img.Ref, "@")
 		path := ref[strings.LastIndex(ref, "/")+1:]
 		if _, tag, ok := strings.Cut(path, ":"); ok && tag != "" && !strings.HasPrefix(tag, "sha256:") {
-			return tag, nil
+			version = tag
 		}
 	}
 
-	if img.Version != nil && *img.Version != "" && !strings.HasPrefix(*img.Version, "sha256:") {
-		return *img.Version, nil
+	if version == "" && img.Version != nil && *img.Version != "" && !strings.HasPrefix(*img.Version, "sha256:") {
+		version = *img.Version
 	}
 
-	return "", fmt.Errorf("could not determine kata version from image %s", img.String())
+	if version == "" {
+		return "", fmt.Errorf("could not determine kata version from image %s", img.String())
+	}
+
+	if !validVersionRegexp.MatchString(version) {
+		return "", fmt.Errorf("invalid kata version %q extracted from image %s", version, img.String())
+	}
+
+	return version, nil
 }

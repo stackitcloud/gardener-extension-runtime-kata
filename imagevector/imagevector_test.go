@@ -129,5 +129,38 @@ var _ = Describe("ImageVector", func() {
 			_, err := imagevector.VersionFromImage(img)
 			Expect(err).To(HaveOccurred())
 		})
+
+		It("returns error when version contains invalid characters", func() {
+			for _, invalid := range []string{
+				"../1.0.0",
+				"v1.0.0/test",
+				"1.0.0;rm -rf /",
+				"$(whoami)",
+				"-1.0.0",
+				".1.0.0",
+				"_1.0.0",
+				"1.0.0 evil",
+				"1.0.0\nevil",
+			} {
+				img := &gardenerimagevector.Image{
+					Repository: new("example.com/repo"),
+					Tag:        &invalid,
+				}
+				_, err := imagevector.VersionFromImage(img)
+				Expect(err).To(HaveOccurred(), "expected %q to be rejected", invalid)
+				Expect(err.Error()).To(ContainSubstring("invalid kata version"))
+			}
+		})
+
+		It("returns error when fallback Version contains invalid characters", func() {
+			img := &gardenerimagevector.Image{
+				Repository: new("example.com/repo"),
+				Tag:        new("sha256:1234567890abcdef"),
+				Version:    new("../invalid-version"),
+			}
+			_, err := imagevector.VersionFromImage(img)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid kata version"))
+		})
 	})
 })
