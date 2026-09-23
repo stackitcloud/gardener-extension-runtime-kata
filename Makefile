@@ -142,12 +142,16 @@ clean: ## Cleans the ./cmd and ./pkg packages and build artifacts
 	@rm -rf images.json controller-images.txt installation-images.txt artifacts $(INSTALLATION_KODATA_DIR)/*.tar.gz
 	@bash $(GARDENER_HACK_DIR)/clean.sh ./cmd/... ./pkg/...
 
+.PHONY: check-package-release
+check-package-release: ## Check if KATA_PACKAGE_RELEASE was incremented when packaging files changed
+	@bash $(HACK_DIR)/check-package-release.sh
+
 .PHONY: check-generate
-check-generate: ## Check if generate target has been run
+check-generate: check-package-release ## Check if generate target has been run
 	@bash $(GARDENER_HACK_DIR)/check-generate.sh $(REPO_ROOT)
 
 .PHONY: check
-check: $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golangci-lint, gofmt/goimports and checks the chart for validity
+check: check-package-release $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golangci-lint, gofmt/goimports and checks the chart for validity
 	@bash $(GARDENER_HACK_DIR)/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/... ./imagevector/... ./test...
 	@bash $(GARDENER_HACK_DIR)/check-charts.sh ./charts
 

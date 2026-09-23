@@ -152,6 +152,10 @@ The versioning of the images is decoupled:
 - The **installation image** is tagged with the packaged Kata version and package release
   (`$(KATA_VERSION)-$(KATA_PACKAGE_RELEASE)`, e.g. `4.1.0-1`), as it only contains the Kata payload
   and evolves independently of controller changes.
+  When packaging assets (`hack/install-binaries.sh` or `cmd/gardener-extension-runtime-kata-installation/`)
+  are modified without bumping `KATA_VERSION`, `KATA_PACKAGE_RELEASE` in `KATA_VERSION` must be incremented
+  and synced with `make generate`. This is verified by `make check-package-release` (executed during `make check`
+  and `make check-generate`).
 
 The Helm chart is pushed as an OCI artifact by `hack/push-artifacts.sh`, which also injects the
 installation-image reference into the chart's `imageVectorOverwrite` so the deployed
