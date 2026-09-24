@@ -22,9 +22,8 @@ LEADER_ELECTION             := false
 include $(REPO_ROOT)/KATA_VERSION
 KATA_PACKAGE_VERSION        := $(KATA_VERSION)-$(KATA_PACKAGE_RELEASE)
 INSTALLATION_TAG            ?= $(KATA_PACKAGE_VERSION)
-INSTALLATION_IMAGE_NAME     := $(EXTENSION_PREFIX)-$(NAME_INSTALLATION)$(REPO_POSTFIX)
+INSTALLATION_IMAGE_NAME     := $(EXTENSION_PREFIX)-$(NAME_INSTALLATION)
 INSTALLATION_IMAGE_REF      ?= $(REPOSITORY)/$(INSTALLATION_IMAGE_NAME):$(INSTALLATION_TAG)
-SKIP_INSTALLATION_IMAGE_BUILD ?= false
 
 LD_FLAGS                    := -w \
 	-X k8s.io/component-base/version.gitVersion=$(VERSION) \
@@ -94,21 +93,20 @@ controller-image: $(KO) ## Builds the controller image using ko. Use PUSH=true t
 	| tee controller-images.txt
 
 .PHONY: installation-image
-installation-image: $(KO) ## Builds the data-only installation image (kata-static tarball as ko kodata)
-ifeq ($(SKIP_INSTALLATION_IMAGE_BUILD),true)
-	@echo "$(INSTALLATION_IMAGE_REF)" > installation-images.txt
-	@echo "Using pre-built installation image: $(INSTALLATION_IMAGE_REF)"
-else
-	@$(MAKE) install-binaries
-	# The installation image only carries data (the tarball as kodata at /var/run/ko/); it is never run.
-	# It is amd64-only for now, because the kata-static payload is architecture-specific.
-	KO_DOCKER_REPO=$(REPOSITORY)/$(INSTALLATION_IMAGE_NAME) \
-	$(KO) build --image-label org.opencontainers.image.source="https://github.com/stackitcloud/gardener-extension-runtime-kata" \
-	--sbom none -t $(INSTALLATION_TAG) --bare \
-	--platform linux/amd64 --push=$(PUSH) \
-	./cmd/$(EXTENSION_PREFIX)-$(NAME_INSTALLATION) \
-	| tee installation-images.txt
-endif
+installation-image: $(KO) ## Builds the data-only installation image (kata-static tarball as ko kodata) if not present in registry
+	@if [ "$${SKIP_INSTALLATION_IMAGE_BUILD:-false}" = "true" ] || docker manifest inspect "$(INSTALLATION_IMAGE_REF)" >/dev/null 2>&1; then \
+		echo "$(INSTALLATION_IMAGE_REF)" > installation-images.txt; \
+		echo "Using existing installation image: $(INSTALLATION_IMAGE_REF)"; \
+	else \
+		$(MAKE) install-binaries; \
+		echo "Building installation image: $(INSTALLATION_IMAGE_REF)"; \
+		KO_DOCKER_REPO=$(REPOSITORY)/$(INSTALLATION_IMAGE_NAME) \
+		$(KO) build --image-label org.opencontainers.image.source="https://github.com/stackitcloud/gardener-extension-runtime-kata" \
+		--sbom none -t $(INSTALLATION_TAG) --bare \
+		--platform linux/amd64 --push=$(PUSH) \
+		./cmd/$(EXTENSION_PREFIX)-$(NAME_INSTALLATION) \
+		| tee installation-images.txt; \
+	fi
 
 .PHONY: generate-images-json
 generate-images-json: images.json ## Generates a JSON file with all images used in the project
