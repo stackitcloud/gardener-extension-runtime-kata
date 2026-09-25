@@ -93,13 +93,21 @@ controller-image: $(KO) ## Builds the controller image using ko. Use PUSH=true t
 	| tee controller-images.txt
 
 .PHONY: installation-image
-installation-image: $(KO) ## Builds the data-only installation image (kata-static tarball as ko kodata) if not present in registry
-	@if [ "$${SKIP_INSTALLATION_IMAGE_BUILD:-false}" = "true" ] || docker manifest inspect "$(INSTALLATION_IMAGE_REF)" >/dev/null 2>&1; then \
+installation-image: $(KO) $(CRANE) ## Builds the data-only installation image (kata-static tarball as ko kodata) if not present in registry
+	@if [ "$${SKIP_INSTALLATION_IMAGE_BUILD:-false}" = "true" ]; then \
 		echo "$(INSTALLATION_IMAGE_REF)" > installation-images.txt; \
-		echo "Using existing installation image: $(INSTALLATION_IMAGE_REF)"; \
+		echo "Skipping installation image build (SKIP_INSTALLATION_IMAGE_BUILD=true): using $(INSTALLATION_IMAGE_REF)"; \
+	elif inspect_out=$$($(CRANE) digest "$(INSTALLATION_IMAGE_REF)" 2>&1); then \
+		echo "$(INSTALLATION_IMAGE_REF)" > installation-images.txt; \
+		echo "Using existing installation image from registry ($$inspect_out): $(INSTALLATION_IMAGE_REF)"; \
 	else \
+		if echo "$$inspect_out" | grep -iqE "manifest[ _-]?unknown|name[ _-]?unknown|not[ _-]?found|404"; then \
+			echo "Installation image $(INSTALLATION_IMAGE_REF) not found in registry, building..."; \
+		else \
+			echo "Warning: Checking installation image $(INSTALLATION_IMAGE_REF) failed: $$inspect_out" >&2; \
+			echo "Building installation image: $(INSTALLATION_IMAGE_REF)"; \
+		fi; \
 		$(MAKE) install-binaries; \
-		echo "Building installation image: $(INSTALLATION_IMAGE_REF)"; \
 		KO_DOCKER_REPO=$(REPOSITORY)/$(INSTALLATION_IMAGE_NAME) \
 		$(KO) build --image-label org.opencontainers.image.source="https://github.com/stackitcloud/gardener-extension-runtime-kata" \
 		--sbom none -t $(INSTALLATION_TAG) --bare \
