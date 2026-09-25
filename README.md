@@ -82,7 +82,8 @@ Upgrades follow two distinct, decoupled release lifecycles:
 - **Extension upgrades (`vX.Y.Z`)**: Controller bugfixes, feature additions, or chart improvements.
   When the Kata version (`KATA_VERSION` and `KATA_PACKAGE_RELEASE`) is unchanged, the installation image
   reference remains identical. Deployed Shoot worker nodes require no new downloads or reconciliations.
-  Releases can skip rebuilding the installation image with `SKIP_INSTALLATION_IMAGE_BUILD=true`.
+  Rebuilding the installation image is skipped automatically if the image already exists in the container
+  registry; `SKIP_INSTALLATION_IMAGE_BUILD=true` can be passed to force skipping the check and build (e.g. for offline builds).
 - **Kata upgrades (`<kata-version>-<package-release>`)**: Upstream Kata releases or packaging changes
   update `KATA_VERSION` and/or `KATA_PACKAGE_RELEASE` in the `KATA_VERSION` file. Running `make installation-image PUSH=true`
   builds and publishes the new installation image.
@@ -122,8 +123,8 @@ make test              # run unit tests
 make verify-extended   # check-generate + check + check-format + test (what CI runs)
 make install-binaries  # download the kata-static tarball into the installation image's kodata dir
 make installation-image PUSH=true  # build (ko) + push only the installation image (Kata upgrade flow)
-make artifacts PUSH=true  # build (ko) + push controller image, installation image, and Helm chart (OCI)
-make artifacts SKIP_INSTALLATION_IMAGE_BUILD=true PUSH=true  # release extension reusing existing installation image
+make artifacts PUSH=true  # build (ko) + push controller image and Helm chart (reusing installation image if present in registry)
+make artifacts SKIP_INSTALLATION_IMAGE_BUILD=true PUSH=true  # build artifacts while forcing reuse of existing installation image without checking registry
 ```
 
 ### Skaffold setup
