@@ -77,11 +77,22 @@ as well. The he taint key is not known to the extension, so no tolerations are i
 
 ### Upgrades
 
+Upgrades follow two distinct, decoupled release lifecycles:
+
+- **Extension upgrades (`vX.Y.Z`)**: Controller bugfixes, feature additions, or chart improvements.
+  When the Kata version (`KATA_VERSION` and `KATA_PACKAGE_RELEASE`) is unchanged, the installation image
+  reference remains identical. Deployed Shoot worker nodes require no new downloads or reconciliations.
+  Rebuilding the installation image is skipped automatically if the image already exists in the container
+  registry; `SKIP_INSTALLATION_IMAGE_BUILD=true` can be passed to force skipping the check and build (e.g. for offline builds).
+- **Kata upgrades (`<kata-version>-<package-release>`)**: Upstream Kata releases or packaging changes
+  update `KATA_VERSION` and/or `KATA_PACKAGE_RELEASE` in the `KATA_VERSION` file. Running `make installation-image PUSH=true`
+  builds and publishes the new installation image.
+
 Kata is installed to a version-stamped path and its runtime handlers reference a version-stamped
 `ConfigPath`, so a Kata version bump installs into a fresh `/opt/kata/<newversion>/` directory and
 never overwrites the binaries or configuration of a version still in use by running workloads. The
-`KATA_VERSION` and `KATA_PACKAGE_RELEASE` variables in the `Makefile` are the single source of truth;
-`pkg/kata.Version` and `pkg/kata.PackageRelease` are set from them via build args (`-ldflags`).
+controller resolves the Kata version dynamically from the configured installation image (via imagevector
+and `imageVectorOverwrite`), decoupling it from controller build-time flags.
 
 Upon deployment of a new kata version, the binaries of the old version get garbage-collected.
 A kata upgrade requires a containerd restart to load the configuration with the updated runtime
@@ -111,8 +122,9 @@ make generate          # regenerate code (DeepCopy, conversion, controller-regis
 make test              # run unit tests
 make verify-extended   # check-generate + check + check-format + test (what CI runs)
 make install-binaries  # download the kata-static tarball into the installation image's kodata dir
-make artifacts PUSH=true  # build (ko) + push the controller image, the data-only installation image,
-                          # and the Helm chart (OCI). CI runs this per branch/tag.
+make installation-image PUSH=true  # build (ko) + push only the installation image (Kata upgrade flow)
+make artifacts PUSH=true  # build (ko) + push controller image and Helm chart (reusing installation image if present in registry)
+make artifacts SKIP_INSTALLATION_IMAGE_BUILD=true PUSH=true  # build artifacts while forcing reuse of existing installation image without checking registry
 ```
 
 ### Skaffold setup
@@ -135,9 +147,21 @@ installation image, which is built using `make install-binaries` is currently am
 `make install-binaries` downloads the tarball into `cmd/gardener-extension-runtime-kata-installation/kodata/`,
 and ko bundles it at `/var/run/ko/`.
 
+The versioning of the images is decoupled:
+- The **controller image** and the **Helm chart** are tagged with the extension release version
+  (`git describe`, e.g. `v0.4.0`).
+- The **installation image** is tagged with the packaged Kata version and package release
+  (`$(KATA_VERSION)-$(KATA_PACKAGE_RELEASE)`, e.g. `4.1.0-1`), as it only contains the Kata payload
+  and evolves independently of controller changes.
+  When packaging assets (`hack/install-binaries.sh` or `cmd/gardener-extension-runtime-kata-installation/`)
+  are modified without bumping `KATA_VERSION`, `KATA_PACKAGE_RELEASE` in `KATA_VERSION` must be incremented
+  and synced with `make generate`. This is verified by `make check-package-release` (executed during `make check`
+  and `make check-generate`).
+
 The Helm chart is pushed as an OCI artifact by `hack/push-artifacts.sh`, which also injects the
-built installation-image reference into the chart's `imageVectorOverwrite` so the deployed
-controller resolves it (dev and release alike) via `IMAGEVECTOR_OVERWRITE`.
+installation-image reference into the chart's `imageVectorOverwrite` so the deployed
+controller resolves it (dev and release alike) via `IMAGEVECTOR_OVERWRITE`. When running locally
+without an overwrite, the controller resolves the installation image and its version from `imagevector/images.yaml`.
 
 ## License & Licensing Compliance
 

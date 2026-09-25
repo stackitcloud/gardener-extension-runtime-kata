@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/stackitcloud/gardener-extension-runtime-kata/imagevector"
 	"github.com/stackitcloud/gardener-extension-runtime-kata/pkg/kata"
 )
 
@@ -88,7 +89,9 @@ var _ = ginkgo.Describe("kata tests", func() {
 		executeCommand(ctx, rootPodExecutor, checkKataShimBinary, "found")
 
 		// check that the version-stamped kata artifacts are present
-		checkKataArtifacts := []string{"sh", "-c", fmt.Sprintf("[ -d %s/%s ] && echo 'found' || echo 'Not found'", kata.InstallationDir, kata.PackageVersion)}
+		_, kataVersion, err := imagevector.FindInstallationImage()
+		g.Expect(err).ToNot(g.HaveOccurred())
+		checkKataArtifacts := []string{"sh", "-c", fmt.Sprintf("[ -d %s/%s ] && echo 'found' || echo 'Not found'", kata.InstallationDir, kataVersion)}
 		executeCommand(ctx, rootPodExecutor, checkKataArtifacts, "found")
 
 		// check that containerd config.toml is configured for the kata-clh handler
