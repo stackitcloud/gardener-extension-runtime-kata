@@ -68,20 +68,16 @@ var _ = Describe("Controller tests", func() {
 
 			managedResourceName = "extension-runtime-kata"
 			managedResource = &resourcesv1alpha1.ManagedResource{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      managedResourceName,
-					Namespace: namespaceName,
-				},
+				Name:      managedResourceName,
+				Namespace: namespaceName,
 			}
 			managedResourceSecret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "managedresource-" + managedResource.Name,
-					Namespace: namespaceName,
-				},
+				Name:      "managedresource-" + managedResource.Name,
+				Namespace: namespaceName,
 			}
 
 			cr = &extensionsv1alpha1.ContainerRuntime{
-				ObjectMeta: metav1.ObjectMeta{Namespace: namespaceName, Name: "test-cr"},
+				Namespace: namespaceName, Name: "test-cr",
 				Spec: extensionsv1alpha1.ContainerRuntimeSpec{
 					BinaryPath: "/path/test",
 					WorkerPool: extensionsv1alpha1.ContainerRuntimeWorkerPool{
@@ -95,7 +91,7 @@ var _ = Describe("Controller tests", func() {
 			}
 
 			cr2 = &extensionsv1alpha1.ContainerRuntime{
-				ObjectMeta: metav1.ObjectMeta{Namespace: namespaceName, Name: "test-cr-2"},
+				Namespace: namespaceName, Name: "test-cr-2",
 				Spec: extensionsv1alpha1.ContainerRuntimeSpec{
 					BinaryPath: "/path/test",
 					WorkerPool: extensionsv1alpha1.ContainerRuntimeWorkerPool{

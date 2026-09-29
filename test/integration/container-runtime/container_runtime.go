@@ -19,7 +19,6 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	g "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stackitcloud/gardener-extension-runtime-kata/imagevector"
@@ -231,10 +230,8 @@ func addKataToWorker(ctx context.Context, f *framework.ShootFramework, workerPoo
 func deployKataPod(ctx context.Context, c client.Client) (*corev1.Pod, error) {
 	runtimeClass := kataRuntimeClass
 	pod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: "kata",
-			Namespace:    "default",
-		},
+		GenerateName: "kata",
+		Namespace:    "default",
 		Spec: corev1.PodSpec{
 			RuntimeClassName: &runtimeClass,
 			Containers: []corev1.Container{

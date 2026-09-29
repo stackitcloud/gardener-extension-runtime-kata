@@ -1,6 +1,6 @@
 module github.com/stackitcloud/gardener-extension-runtime-kata
 
-go 1.26.5
+go 1.27.1
 
 require (
 	github.com/elastic/crd-ref-docs v0.3.0
