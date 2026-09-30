@@ -161,11 +161,9 @@ check: check-package-release $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golan
 	@bash $(GARDENER_HACK_DIR)/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/... ./imagevector/... ./test...
 	@bash $(GARDENER_HACK_DIR)/check-charts.sh ./charts
 
-.PHONY: check-vuln govulncheck
-check-vuln: $(GOVULNCHECK) ## Runs govulncheck to inspect dependencies for known vulnerabilities
+.PHONY: govulncheck
+govulncheck: $(GOVULNCHECK) ## Runs govulncheck to inspect dependencies for known vulnerabilities
 	@$(GOVULNCHECK) ./...
-
-govulncheck: check-vuln
 
 
 .PHONY: generate
