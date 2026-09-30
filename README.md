@@ -30,11 +30,13 @@ When a worker pool declares `cri.containerRuntimes[].type: kata`, Gardener:
 
 1. creates a `ContainerRuntime` resource of type `kata` for the pool on the seed, driving this
    extension's actuator, and
-2. labels every node of the pool `containerruntime.worker.gardener.cloud/kata=true`.
+2. labels every node of the pool, the pool's `OperatingSystemConfig` (OSC), and the shoot control
+   plane namespace on the seed with `containerruntime.worker.gardener.cloud/kata=true`.
 
-That label is the whole targeting mechanism. The node-local integration is delivered **entirely
+That label is the targeting mechanism. The node-local integration is delivered **entirely
 through the `OperatingSystemConfig` (OSC)** by a seed-side mutating webhook instead of a DaemonSet.
-The webhook reads the OSC's worker-pool label and, only for pools that requested the `kata` runtime,
+The webhook is scoped via `NamespaceSelector` and `ObjectSelector` directly to OSCs and shoot namespaces
+labeled with `containerruntime.worker.gardener.cloud/kata=true` (running with `FailurePolicy: Fail`), and
 adds three things to the reconcile OSC (gardener-node-agent then applies them):
 
 - **containerd runtime handlers.** The `kata-qemu` and `kata-clh` handlers are added to the
