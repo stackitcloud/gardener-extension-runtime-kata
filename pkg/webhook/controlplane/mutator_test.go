@@ -16,6 +16,7 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -37,7 +38,7 @@ func makeShoot(runtimes ...string) *gardencorev1beta1.Shoot {
 		}
 	}
 	return &gardencorev1beta1.Shoot{
-		APIVersion: "core.gardener.cloud/v1beta1", Kind: "Shoot",
+		TypeMeta: metav1.TypeMeta{APIVersion: "core.gardener.cloud/v1beta1", Kind: "Shoot"},
 		Spec: gardencorev1beta1.ShootSpec{
 			Provider: gardencorev1beta1.Provider{Workers: []gardencorev1beta1.Worker{worker}},
 		},
@@ -48,7 +49,7 @@ func makeCluster(shoot *gardencorev1beta1.Shoot) *extensionsv1alpha1.Cluster {
 	raw, err := json.Marshal(shoot)
 	Expect(err).NotTo(HaveOccurred())
 	return &extensionsv1alpha1.Cluster{
-		Name: namespace,
+		ObjectMeta: metav1.ObjectMeta{Name: namespace},
 		Spec: extensionsv1alpha1.ClusterSpec{
 			Shoot: runtime.RawExtension{Raw: raw},
 		},
@@ -62,9 +63,11 @@ func makeOSC(reconcile bool) *extensionsv1alpha1.OperatingSystemConfig {
 	}
 
 	osc := &extensionsv1alpha1.OperatingSystemConfig{
-		Namespace: namespace,
-		Name:      "osc",
-		Labels:    map[string]string{v1beta1constants.LabelWorkerPool: poolName},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      "osc",
+			Labels:    map[string]string{v1beta1constants.LabelWorkerPool: poolName},
+		},
 		Spec: extensionsv1alpha1.OperatingSystemConfigSpec{
 			Purpose:   purpose,
 			CRIConfig: &extensionsv1alpha1.CRIConfig{Name: extensionsv1alpha1.CRINameContainerD},
