@@ -17,7 +17,6 @@ require (
 	k8s.io/apimachinery v0.36.4
 	k8s.io/code-generator v0.36.4
 	k8s.io/component-base v0.36.4
-	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
 	sigs.k8s.io/controller-runtime v0.24.1
 )
 
@@ -233,6 +232,7 @@ require (
 	k8s.io/metrics v0.36.4 // indirect
 	k8s.io/pod-security-admission v0.36.4 // indirect
 	k8s.io/streaming v0.36.4 // indirect
+	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3 // indirect
 	sigs.k8s.io/controller-tools v0.21.0 // indirect
 	sigs.k8s.io/gateway-api v1.6.1 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
