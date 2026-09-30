@@ -161,6 +161,11 @@ check: check-package-release $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golan
 	@bash $(GARDENER_HACK_DIR)/check.sh --golangci-lint-config=./.golangci.yaml ./cmd/... ./pkg/... ./imagevector/... ./test...
 	@bash $(GARDENER_HACK_DIR)/check-charts.sh ./charts
 
+.PHONY: govulncheck
+govulncheck: $(GOVULNCHECK) ## Runs govulncheck to inspect dependencies for known vulnerabilities
+	@$(GOVULNCHECK) ./...
+
+
 .PHONY: generate
 generate: $(CONTROLLER_GEN) $(CRD_REF_DOCS) $(HELM) $(YQ) $(GOIMPORTS) ## Generates code, the controller-registration and the API reference docs
 	@REPO_ROOT=$(REPO_ROOT) GARDENER_HACK_DIR=$(GARDENER_HACK_DIR) bash $(GARDENER_HACK_DIR)/generate-sequential.sh ./charts/... ./cmd/... ./example/... ./pkg/...
@@ -185,7 +190,7 @@ test: ## Runs the unit-test suite
 verify: check check-format test ## Run check, format and test
 
 .PHONY: verify-extended
-verify-extended: check-generate check check-format test ## Run check-generate, check, format and test
+verify-extended: govulncheck check-generate check check-format test ## Run govulncheck, check-generate, check, format and test
 
 help: ## Display this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
