@@ -87,9 +87,13 @@ func (m *mutator) Mutate(ctx context.Context, newObj, _ client.Object) error {
 	}
 
 	// Precise per-pool gating: only act if the worker pool this OSC belongs to requests the kata
-	// container runtime. gardenlet labels the OSC with the worker pool name.
+	// container runtime. Gardener labels the OSC with the worker pool name and with
+	// containerruntime.worker.gardener.cloud/<type>=true.
 	poolName, ok := osc.Labels[v1beta1constants.LabelWorkerPool]
 	if !ok {
+		return nil
+	}
+	if osc.Labels[fmt.Sprintf(extensionsv1alpha1.ContainerRuntimeNameWorkerLabel, kata.Type)] != "true" {
 		return nil
 	}
 	cluster, err := gcontext.NewGardenContext(m.client, osc).GetCluster(ctx)

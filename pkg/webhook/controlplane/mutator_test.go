@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -66,7 +67,10 @@ func makeOSC(reconcile bool) *extensionsv1alpha1.OperatingSystemConfig {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "osc",
-			Labels:    map[string]string{v1beta1constants.LabelWorkerPool: poolName},
+			Labels: map[string]string{
+				v1beta1constants.LabelWorkerPool:                                           poolName,
+				fmt.Sprintf(extensionsv1alpha1.ContainerRuntimeNameWorkerLabel, kata.Type): "true",
+			},
 		},
 		Spec: extensionsv1alpha1.OperatingSystemConfigSpec{
 			Purpose:   purpose,
@@ -205,6 +209,17 @@ var _ = Describe("Mutator", func() {
 		It("does not mutate when the worker pool does not use kata", func() {
 			newMutatorWith(makeCluster(makeShoot()))
 			osc := makeOSC(true)
+
+			Expect(m.Mutate(ctx, osc, nil)).To(Succeed())
+			Expect(osc.Spec.CRIConfig.Containerd.Plugins).To(BeEmpty())
+			Expect(osc.Spec.Files).To(BeEmpty())
+			Expect(osc.Spec.Units).To(BeEmpty())
+		})
+
+		It("does not mutate an OSC without the kata container runtime label", func() {
+			newMutatorWith(makeCluster(makeShoot(kata.Type)))
+			osc := makeOSC(true)
+			delete(osc.Labels, fmt.Sprintf(extensionsv1alpha1.ContainerRuntimeNameWorkerLabel, kata.Type))
 
 			Expect(m.Mutate(ctx, osc, nil)).To(Succeed())
 			Expect(osc.Spec.CRIConfig.Containerd.Plugins).To(BeEmpty())
