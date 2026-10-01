@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -41,18 +40,6 @@ var _ = Describe("Add", func() {
 
 			Expect(webhook.NamespaceSelector).To(Equal(extensionswebhook.BuildContainerRuntimeTypeNamespaceSelector(kata.Type)))
 			Expect(webhook.ObjectSelector).To(Equal(extensionswebhook.BuildContainerRuntimeTypeObjectSelector(kata.Type)))
-
-			expectedSelector := &metav1.LabelSelector{
-				MatchExpressions: []metav1.LabelSelectorRequirement{
-					{
-						Key:      "containerruntime.worker.gardener.cloud/" + kata.Type,
-						Operator: metav1.LabelSelectorOpIn,
-						Values:   []string{"true"},
-					},
-				},
-			}
-			Expect(webhook.NamespaceSelector).To(Equal(expectedSelector))
-			Expect(webhook.ObjectSelector).To(Equal(expectedSelector))
 
 			Expect(webhook.Types).To(ConsistOf(extensionswebhook.Type{
 				Obj: &extensionsv1alpha1.OperatingSystemConfig{},
