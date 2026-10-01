@@ -5,7 +5,6 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -67,10 +66,7 @@ func makeOSC(reconcile bool) *extensionsv1alpha1.OperatingSystemConfig {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      "osc",
-			Labels: map[string]string{
-				v1beta1constants.LabelWorkerPool:                                           poolName,
-				fmt.Sprintf(extensionsv1alpha1.ContainerRuntimeNameWorkerLabel, kata.Type): "true",
-			},
+			Labels:    map[string]string{v1beta1constants.LabelWorkerPool: poolName},
 		},
 		Spec: extensionsv1alpha1.OperatingSystemConfigSpec{
 			Purpose:   purpose,
