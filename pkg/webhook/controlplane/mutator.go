@@ -86,7 +86,7 @@ func (m *mutator) Mutate(ctx context.Context, newObj, _ client.Object) error {
 	}
 
 	// Precise per-pool gating: only act if the worker pool this OSC belongs to requests the kata
-	// container runtime.
+	// container runtime. gardenlet labels the OSC with the worker pool name.
 	poolName, ok := osc.Labels[v1beta1constants.LabelWorkerPool]
 	if !ok {
 		return nil
