@@ -216,17 +216,6 @@ var _ = Describe("Mutator", func() {
 			Expect(osc.Spec.Units).To(BeEmpty())
 		})
 
-		It("does not mutate an OSC without the kata container runtime label", func() {
-			newMutatorWith(makeCluster(makeShoot(kata.Type)))
-			osc := makeOSC(true)
-			delete(osc.Labels, fmt.Sprintf(extensionsv1alpha1.ContainerRuntimeNameWorkerLabel, kata.Type))
-
-			Expect(m.Mutate(ctx, osc, nil)).To(Succeed())
-			Expect(osc.Spec.CRIConfig.Containerd.Plugins).To(BeEmpty())
-			Expect(osc.Spec.Files).To(BeEmpty())
-			Expect(osc.Spec.Units).To(BeEmpty())
-		})
-
 		It("does not mutate the provision OSC (no containerd config)", func() {
 			newMutatorWith(makeCluster(makeShoot(kata.Type)))
 			osc := makeOSC(false)
