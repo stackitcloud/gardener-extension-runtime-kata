@@ -30,9 +30,6 @@ LD_FLAGS                    := -w \
 	-X k8s.io/component-base/version.gitCommit=$(GIT_COMMIT) \
 	-X k8s.io/component-base/version.buildDate=$(BUILD_DATE)
 
-# Instruct the Go GC to trigger aggressively before hitting container memory caps
-export GOMEMLIMIT ?= 3500MiB
-
 # Directory into which the kata-static tarball is downloaded so that `ko` bundles it into the
 # installation image as kodata (available at /var/run/ko/ in the image).
 INSTALLATION_KODATA_DIR     := $(REPO_ROOT)/cmd/$(EXTENSION_PREFIX)-$(NAME_INSTALLATION)/kodata
