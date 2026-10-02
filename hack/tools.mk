@@ -1,3 +1,6 @@
+# Instruct the Go GC to trigger aggressively before hitting container memory caps
+export GOMEMLIMIT ?= 3500MiB
+
 # renovate: datasource=github-releases depName=ko-build/ko
 KO_VERSION ?= v0.19.1
 
