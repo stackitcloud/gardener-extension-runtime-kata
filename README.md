@@ -77,6 +77,12 @@ nested-virtualization pools usually carry a user-defined taint, pods must tolera
 as well. The he taint key is not known to the extension, so no tolerations are injected into the
 `RuntimeClass`.
 
+### Requirements
+
+This extension requires Gardener with the container-runtime label propagation used by the
+`NamespaceSelector` and `ObjectSelector` selectors. The minimum supported Gardener version is
+`v1.152.0`.
+
 ### Upgrades
 
 Upgrades follow two distinct, decoupled release lifecycles:
