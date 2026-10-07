@@ -30,11 +30,13 @@ When a worker pool declares `cri.containerRuntimes[].type: kata`, Gardener:
 
 1. creates a `ContainerRuntime` resource of type `kata` for the pool on the seed, driving this
    extension's actuator, and
-2. labels every node of the pool `containerruntime.worker.gardener.cloud/kata=true`.
+2. labels every node of the pool, the pool's `OperatingSystemConfig` (OSC), and the shoot control
+   plane namespace on the seed with `containerruntime.worker.gardener.cloud/kata=true`.
 
-That label is the whole targeting mechanism. The node-local integration is delivered **entirely
+That label is the targeting mechanism. The node-local integration is delivered **entirely
 through the `OperatingSystemConfig` (OSC)** by a seed-side mutating webhook instead of a DaemonSet.
-The webhook reads the OSC's worker-pool label and, only for pools that requested the `kata` runtime,
+The webhook is scoped via `NamespaceSelector` and `ObjectSelector` directly to OSCs and shoot namespaces
+labeled with `containerruntime.worker.gardener.cloud/kata=true` (running with `FailurePolicy: Fail`), and
 adds three things to the reconcile OSC (gardener-node-agent then applies them):
 
 - **containerd runtime handlers.** The `kata-qemu` and `kata-clh` handlers are added to the
@@ -74,6 +76,12 @@ The `RuntimeClass` `nodeSelector` pins such pods to nodes of kata-enabled pools.
 nested-virtualization pools usually carry a user-defined taint, pods must tolerate that taint
 as well. The he taint key is not known to the extension, so no tolerations are injected into the
 `RuntimeClass`.
+
+### Requirements
+
+This extension requires Gardener with the container-runtime label propagation used by the
+`NamespaceSelector` and `ObjectSelector` selectors since `>=v0.6.0`. The minimum supported Gardener version is
+`v1.152.0`.
 
 ### Upgrades
 

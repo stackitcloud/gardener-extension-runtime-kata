@@ -13,7 +13,6 @@ import (
 	extensionsv1alpha1 "github.com/gardener/gardener/pkg/apis/extensions/v1alpha1"
 	"github.com/go-logr/logr"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -144,7 +143,7 @@ func ensureFiles(files *[]extensionsv1alpha1.File, installerImage, version strin
 			// Version-stamped download path: a Kata upgrade delivers a new tarball at a new path, which
 			// changes the install unit's FilePaths and re-triggers the installation.
 			Path:        tarballPath(version),
-			Permissions: ptr.To[uint32](0644),
+			Permissions: new(uint32(0644)),
 			Content: extensionsv1alpha1.FileContent{
 				ImageRef: &extensionsv1alpha1.FileContentImageRef{
 					Image:           installerImage,
@@ -154,7 +153,7 @@ func ensureFiles(files *[]extensionsv1alpha1.File, installerImage, version strin
 		},
 		{
 			Path:        installScriptPath,
-			Permissions: ptr.To[uint32](0755),
+			Permissions: new(uint32(0755)),
 			Content: extensionsv1alpha1.FileContent{
 				Inline: &extensionsv1alpha1.FileContentInline{
 					Encoding: string(extensionsv1alpha1.PlainFileCodecID),
@@ -176,7 +175,7 @@ func ensureUnits(units *[]extensionsv1alpha1.Unit, version string) {
 	unit := extensionsv1alpha1.Unit{
 		Name:      installUnitName,
 		Enable:    new(true),
-		Command:   ptr.To(extensionsv1alpha1.CommandStart),
+		Command:   new(extensionsv1alpha1.CommandStart),
 		Content:   new(installUnitContent),
 		FilePaths: []string{tarballPath(version), installScriptPath},
 	}
