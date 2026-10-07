@@ -163,7 +163,7 @@ check: check-package-release $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golan
 
 .PHONY: govulncheck
 govulncheck: $(GOVULNCHECK) ## Runs govulncheck to inspect dependencies for known vulnerabilities
-	@$(GOVULNCHECK) ./...
+	@bash $(HACK_DIR)/check-govulncheck.sh $(GOVULNCHECK) ./...
 
 
 .PHONY: generate

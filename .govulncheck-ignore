@@ -1,0 +1,8 @@
+# List of vulnerabilities ignored by govulncheck.
+# Entries should be removed once upstream advisories or dependencies are updated.
+
+# Upstream vulndb bug (GHSA-gfjv-gqf2-c888 / CVE-2026-79767): the advisory was
+# ingested into vuln.go.dev with non_go_versions, defaulting SEMVER range to >= 0
+# without an upper bound. Fixed in Gardener v1.145.0, this repo uses v1.151.0+.
+# https://github.com/golang/vulndb/issues/6666
+GO-2026-6568
