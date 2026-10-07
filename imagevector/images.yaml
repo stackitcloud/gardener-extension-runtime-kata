@@ -4,4 +4,5 @@ images:
     repository: ghcr.io/stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata-installation
     resourceId:
       name: gardener-extension-runtime-kata-installation
+    # renovate: datasource=github-releases depName=kata-containers/kata-containers
     tag: 4.1.0-2
