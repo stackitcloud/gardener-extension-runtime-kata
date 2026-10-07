@@ -58,6 +58,12 @@
   ],
   packageRules: [
     {
+      groupName: 'Kata Dependencies',
+      matchPackageNames: [
+        'kata-containers/kata-containers',
+      ],
+    },
+    {
       groupName: 'gardener/gardener',
       matchPackageNames: [
         'github.com/gardener/gardener',
