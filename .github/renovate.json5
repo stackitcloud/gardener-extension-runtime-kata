@@ -24,14 +24,45 @@
         '/Makefile$/',
         '/\\.mk$/',
         '/\\.sh$/',
-        '/(^|/)KATA_VERSION$/',
       ],
       matchStrings: [
         '# renovate: datasource=(?<datasource>[a-z-.]+?) depName=(?<depName>[^\\s]+?)(?: (lookupName|packageName)=(?<packageName>[^\\s]+?))?(?: versioning=(?<versioning>[^\\s]+?))?(?: extractVersion=(?<extractVersion>[^\\s]+?))?(?: registryUrl=(?<registryUrl>[^\\s]+?))?\\s.+?_(VERSION|version) *[?:]?= *"?(?<currentValue>.+?)"?\\s',
       ],
     },
+    {
+      description: 'Update Kata version and reset package release to 0 in KATA_VERSION',
+      customType: 'regex',
+      managerFilePatterns: [
+        '/(^|/)KATA_VERSION$/',
+      ],
+      matchStrings: [
+        'KATA_VERSION *[?:]?= *"?(?<currentValue>[^\\s"]+?)"?\\s[\\s\\S]*?KATA_PACKAGE_RELEASE *[?:]?= *"?[^\\s"]+?"?\\s',
+      ],
+      autoReplaceStringTemplate: 'KATA_VERSION := {{{newVersion}}}\n# Release counter that can be incremented if it becomes necessary to update the kata configuration\n# without also changing the kata version at the same time\nKATA_PACKAGE_RELEASE := 0\n',
+      datasourceTemplate: 'github-releases',
+      depNameTemplate: 'kata-containers/kata-containers',
+    },
+    {
+      description: 'Update Kata installation image tag in imagevector/images.yaml',
+      customType: 'regex',
+      managerFilePatterns: [
+        '/(^|/)imagevector/images\\.yaml$/',
+      ],
+      matchStrings: [
+        'tag: "?(?<currentValue>[^"\\s-]+)(?:-[^"\\s]+)?"?\\s',
+      ],
+      autoReplaceStringTemplate: 'tag: {{{newVersion}}}-0\n',
+      datasourceTemplate: 'github-releases',
+      depNameTemplate: 'kata-containers/kata-containers',
+    },
   ],
   packageRules: [
+    {
+      groupName: 'Kata Dependencies',
+      matchPackageNames: [
+        'kata-containers/kata-containers',
+      ],
+    },
     {
       groupName: 'gardener/gardener',
       matchPackageNames: [
@@ -49,6 +80,16 @@
       matchPackageNames: [
         '/k8s.io/',
         '/sigs.k8s.io/controller-runtime/',
+      ],
+    },
+    {
+      description: 'Disable docker datasource update for installation image because it is updated alongside KATA_VERSION via github-releases',
+      enabled: false,
+      matchDatasources: [
+        'docker',
+      ],
+      matchPackageNames: [
+        'ghcr.io/stackitcloud/gardener-extension-runtime-kata/gardener-extension-runtime-kata-installation',
       ],
     },
     {

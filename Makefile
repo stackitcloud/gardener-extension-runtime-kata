@@ -165,6 +165,10 @@ check: check-package-release $(GOIMPORTS) $(GOLANGCI_LINT) $(HELM) ## Runs golan
 govulncheck: $(GOVULNCHECK) ## Runs govulncheck to inspect dependencies for known vulnerabilities
 	@bash $(HACK_DIR)/check-govulncheck.sh $(GOVULNCHECK) ./...
 
+.PHONY: check-renovate
+check-renovate: ## Validates the Renovate configuration using Docker
+	@docker run --rm -v $(REPO_ROOT):/repo:ro -w /repo renovate/renovate:latest renovate-config-validator --strict
+
 
 .PHONY: generate
 generate: $(CONTROLLER_GEN) $(CRD_REF_DOCS) $(HELM) $(YQ) $(GOIMPORTS) ## Generates code, the controller-registration and the API reference docs
