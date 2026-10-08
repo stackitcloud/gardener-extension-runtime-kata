@@ -1,6 +1,6 @@
 # The Kata Containers release that is installed on the nodes. This is used to build
 # the default installation image.
-KATA_VERSION := 4.1.0
+KATA_VERSION := 4.2.0
 # Release counter that can be incremented if it becomes necessary to update the kata configuration
 # without also changing the kata version at the same time
-KATA_PACKAGE_RELEASE := 2
+KATA_PACKAGE_RELEASE := 0
