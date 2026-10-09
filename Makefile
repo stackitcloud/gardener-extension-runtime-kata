@@ -4,6 +4,7 @@ GARDENER_HACK_DIR           := $(GARDENER_DIR)/hack
 
 EXTENSION_PREFIX            := gardener-extension
 NAME                        := runtime-kata
+NAME_ADMISSION              := admission-runtime-kata
 NAME_INSTALLATION           := runtime-kata-installation
 REGISTRY                    ?= ghcr.io
 REPOSITORY                  := $(REGISTRY)/stackitcloud/gardener-extension-runtime-kata
@@ -80,7 +81,7 @@ install-binaries: $(KATA_SENTINEL) ## Downloads the kata-static tarball into the
 images: export KO_DOCKER_REPO = $(REPOSITORY)
 
 .PHONY: images
-images: controller-image installation-image ## Builds all images. Use PUSH=true to also push it to a registry
+images: controller-image admission-image installation-image ## Builds all images. Use PUSH=true to also push it to a registry
 
 .PHONY: controller-image
 controller-image: $(KO) ## Builds the controller image using ko. Use PUSH=true to also push it to a registry
@@ -91,6 +92,16 @@ controller-image: $(KO) ## Builds the controller image using ko. Use PUSH=true t
 	--ldflags "$(LD_FLAGS)" \
 	./cmd/$(EXTENSION_PREFIX)-$(NAME) \
 	| tee controller-images.txt
+
+.PHONY: admission-image
+admission-image: $(KO) ## Builds the admission image using ko. Use PUSH=true to also push it to a registry
+	KO_DOCKER_REPO=$(REPOSITORY)/$(EXTENSION_PREFIX)-$(NAME_ADMISSION)$(REPO_POSTFIX) \
+	$(KO) build --image-label org.opencontainers.image.source="https://github.com/stackitcloud/gardener-extension-runtime-kata" \
+	--sbom none -t $(TAG) --bare \
+	--platform linux/amd64,linux/arm64 --push=$(PUSH) \
+	--ldflags "$(LD_FLAGS)" \
+	./cmd/$(EXTENSION_PREFIX)-$(NAME_ADMISSION) \
+	| tee admission-images.txt
 
 .PHONY: installation-image
 installation-image: $(KO) $(CRANE) ## Builds the data-only installation image (kata-static tarball as ko kodata) if not present in registry
@@ -118,11 +129,12 @@ installation-image: $(KO) $(CRANE) ## Builds the data-only installation image (k
 
 .PHONY: generate-images-json
 generate-images-json: images.json ## Generates a JSON file with all images used in the project
-images.json: controller-images.txt installation-images.txt
+images.json: controller-images.txt admission-images.txt installation-images.txt
 	@jq -n \
 		--arg controller "$$(cat controller-images.txt)" \
+		--arg admission "$$(cat admission-images.txt)" \
 		--arg installation "$$(cat installation-images.txt)" \
-		'{images: {"$(EXTENSION_PREFIX)-$(NAME)": $$controller, "$(EXTENSION_PREFIX)-$(NAME_INSTALLATION)": $$installation}}' > images.json
+		'{images: {"$(EXTENSION_PREFIX)-$(NAME)": $$controller, "$(EXTENSION_PREFIX)-$(NAME_ADMISSION)": $$admission, "$(EXTENSION_PREFIX)-$(NAME_INSTALLATION)": $$installation}}' > images.json
 
 .PHONY: artifacts-only
 artifacts-only: $(YQ) $(HELM) generate-images-json ## Packages and pushes the Helm chart(s)
@@ -145,7 +157,7 @@ revendor: tidy
 
 .PHONY: clean
 clean: ## Cleans the ./cmd and ./pkg packages and build artifacts
-	@rm -rf images.json controller-images.txt installation-images.txt artifacts $(INSTALLATION_KODATA_DIR)/*.tar.gz
+	@rm -rf images.json controller-images.txt admission-images.txt installation-images.txt artifacts $(INSTALLATION_KODATA_DIR)/*.tar.gz
 	@bash $(GARDENER_HACK_DIR)/clean.sh ./cmd/... ./pkg/...
 
 .PHONY: check-package-release
