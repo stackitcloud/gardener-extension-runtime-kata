@@ -6,6 +6,19 @@ metadata:
   name: runtime-kata
 spec:
   deployment:
+    admission:
+      values:
+        requiredCapabilities:
+          - name: containerRuntime
+            value: kata
+      runtimeCluster:
+        helm:
+          ociRepository:
+            ref: ghcr.io/stackitcloud/gardener-extension-runtime-kata/charts/admission-runtime-kata-runtime:v0.1.0-dev
+      virtualCluster:
+        helm:
+          ociRepository:
+            ref: ghcr.io/stackitcloud/gardener-extension-runtime-kata/charts/admission-runtime-kata-virtual-garden:v0.1.0-dev
     extension:
       helm:
         ociRepository:
