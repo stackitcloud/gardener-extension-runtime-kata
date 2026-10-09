@@ -1,0 +1,6 @@
+gardener:
+  virtualCluster:
+    enabled: true
+    serviceAccount: {}
+  #     name: extension-admission-runtime-kata
+  #     namespace: kube-system

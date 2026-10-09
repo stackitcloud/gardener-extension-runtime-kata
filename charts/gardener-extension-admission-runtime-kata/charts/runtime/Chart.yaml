@@ -1,0 +1,6 @@
+apiVersion: v1
+description: A Helm chart to deploy the admission-runtime-kata-runtime related resources
+name: admission-runtime-kata-runtime
+version: 0.1.0
+sources:
+  - https://github.com/stackitcloud/gardener-extension-runtime-kata

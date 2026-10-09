@@ -1,0 +1,39 @@
+image:
+  ref: ""
+  repository: ghcr.io/stackitcloud/gardener-extension-runtime-kata/gardener-extension-admission-runtime-kata
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+resources: {}
+extraEnvs: []
+metricsPort: 8080
+healthPort: 8081
+vpa:
+  enabled: true
+  updatePolicy:
+    updateMode: "InPlaceOrRecreate"
+webhookConfig:
+  serverPort: 10250
+  servicePort: 443
+# Kubeconfig to the target cluster. In-cluster configuration will be used if not specified.
+kubeconfig:
+
+# Options to configure the required machine capabilities for Kata to be installable on worker pools.
+# Each entry specifies a capability name and the required value in the referenced CloudProfile.
+requiredCapabilities:
+  - name: containerRuntime
+    value: kata
+
+service:
+  topologyAwareRouting:
+    enabled: false
+
+gardener:
+  virtualCluster:
+    enabled: true
+    serviceAccount: {}
+  #     name: extension-admission-runtime-kata
+  #     namespace: kube-system
+  runtimeCluster: {}
+#   priorityClassName: gardener-garden-system-400
