@@ -7,6 +7,7 @@ package validator_test
 import (
 	"context"
 
+	"github.com/gardener/gardener/pkg/apis/core"
 	gardencoreinstall "github.com/gardener/gardener/pkg/apis/core/install"
 	gardencorev1beta1 "github.com/gardener/gardener/pkg/apis/core/v1beta1"
 	v1beta1constants "github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
@@ -268,5 +269,24 @@ var _ = Describe("Shoot Validator", func() {
 		err := v2.Validate(ctx, shoot, nil)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring(`does not have required capability gpuArchitecture="NVIDIA_AMPERE"`))
+	})
+
+	It("succeeds when validated object is an internal core.Shoot", func() {
+		coreShoot := &core.Shoot{}
+		Expect(scheme.Convert(shoot, coreShoot, nil)).To(Succeed())
+
+		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cloudProfile).Build()
+		v := validator.NewShootValidatorWithClient(c, defaultRequiredCaps)
+
+		Expect(v.Validate(ctx, coreShoot, nil)).To(Succeed())
+	})
+
+	It("fails when object is not a Shoot", func() {
+		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cloudProfile).Build()
+		v := validator.NewShootValidatorWithClient(c, defaultRequiredCaps)
+
+		err := v.Validate(ctx, &gardencorev1beta1.CloudProfile{}, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("expected Shoot, but got *v1beta1.CloudProfile"))
 	})
 })

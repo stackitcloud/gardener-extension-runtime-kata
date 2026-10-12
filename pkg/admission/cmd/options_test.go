@@ -59,4 +59,16 @@ var _ = Describe("Admission Cmd Options", func() {
 			{Name: "containerRuntime", Value: "kata"},
 		}))
 	})
+
+	It("clears required capabilities on target slice when empty", func() {
+		cfg := &admissioncmd.Config{
+			RequiredCapabilities: nil,
+		}
+
+		target := []validator.RequiredCapability{
+			{Name: "containerRuntime", Value: "kata"},
+		}
+		cfg.ApplyRequiredCapabilities(&target)
+		Expect(target).To(BeEmpty())
+	})
 })
