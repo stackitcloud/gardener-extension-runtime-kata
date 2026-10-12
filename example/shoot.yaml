@@ -7,8 +7,8 @@ spec:
 ...
   provider:
     workers:
-      # The worker pool must use a nested-virtualization-capable machine type and, typically, a
-      # user-defined taint so that only workloads that tolerate it land on these nodes.
+      # Requires a machine type with capability containerRuntime=kata.
+      # A user-defined taint is recommended so only Kata workloads land on these nodes.
       - name: worker-kata
 ...
         cri:
