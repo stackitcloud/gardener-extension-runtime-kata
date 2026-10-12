@@ -125,9 +125,14 @@ func NewAdmissionCommand(ctx context.Context) *cobra.Command {
 
 			var sourceCluster cluster.Cluster
 			if sourceClusterConfig != nil {
+				sourceClusterNamespace := v1beta1constants.GardenNamespace
+				if webhookNamespace := webhookOptions.Server.Completed().Namespace; webhookNamespace != "" {
+					sourceClusterNamespace = webhookNamespace
+				}
+
 				sourceCluster, err = cluster.New(sourceClusterConfig, func(opts *cluster.Options) {
 					opts.Logger = log
-					opts.Cache.DefaultNamespaces = map[string]cache.Config{v1beta1constants.GardenNamespace: {}}
+					opts.Cache.DefaultNamespaces = map[string]cache.Config{sourceClusterNamespace: {}}
 				})
 				if err != nil {
 					return err

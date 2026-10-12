@@ -69,7 +69,7 @@ func (c *ConfigOptions) Completed() *Config {
 
 // ApplyRequiredCapabilities applies the required capabilities to the validator AddOptions.
 func (c *Config) ApplyRequiredCapabilities(target *[]validator.RequiredCapability) {
-	if c != nil && len(c.RequiredCapabilities) > 0 {
+	if c != nil {
 		*target = c.RequiredCapabilities
 	}
 }
