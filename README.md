@@ -74,8 +74,31 @@ spec:
 
 The `RuntimeClass` `nodeSelector` pins such pods to nodes of kata-enabled pools. Because
 nested-virtualization pools usually carry a user-defined taint, pods must tolerate that taint
-as well. The he taint key is not known to the extension, so no tolerations are injected into the
+as well. The taint key is not known to the extension, so no tolerations are injected into the
 `RuntimeClass`.
+
+### Machine Capability Validation
+
+An admission webhook (`gardener-extension-admission-runtime-kata`) validates that worker pools enabling Kata use machine types supporting nested virtualization. It checks the pool's `machine.type` against the `capabilities` defined in the referenced `(Namespaced)CloudProfile`.
+
+By default, the webhook requires `containerRuntime: [kata]`:
+
+```yaml
+# In CloudProfile spec.machineTypes[]
+capabilities:
+  containerRuntime:
+    - kata
+```
+
+Required capabilities can be customized or disabled via `requiredCapabilities` in the admission chart or `Extension` deployment values:
+
+```yaml
+requiredCapabilities:
+  - name: containerRuntime
+    value: kata
+```
+
+Set `requiredCapabilities: []` to disable validation.
 
 ### Requirements
 

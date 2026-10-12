@@ -8,6 +8,7 @@ spec:
   deployment:
     admission:
       values:
+        # Required machine capabilities for Kata worker pools (defaults to containerRuntime=kata; set to [] to disable).
         requiredCapabilities:
           - name: containerRuntime
             value: kata
