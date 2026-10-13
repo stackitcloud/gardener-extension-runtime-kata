@@ -90,7 +90,7 @@ capabilities:
     - kata
 ```
 
-Required capabilities can be customized or disabled via `requiredCapabilities` in the admission chart or `Extension` deployment values:
+Required capabilities can be customized via `requiredCapabilities` in the admission chart or `Extension` deployment values:
 
 ```yaml
 requiredCapabilities:
@@ -98,7 +98,7 @@ requiredCapabilities:
     value: kata
 ```
 
-Set `requiredCapabilities: []` to disable validation.
+If capability validation is not needed, do not deploy the admission webhook.
 
 ### Requirements
 

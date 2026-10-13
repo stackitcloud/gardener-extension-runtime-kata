@@ -46,6 +46,19 @@ var _ = Describe("Admission Cmd Options", func() {
 		Expect(err.Error()).To(ContainSubstring("invalid required capability"))
 	})
 
+	It("fails when no required capabilities are configured", func() {
+		opts := &admissioncmd.ConfigOptions{}
+		fs := pflag.NewFlagSet("test", pflag.ContinueOnError)
+		opts.AddFlags(fs)
+
+		err := fs.Parse([]string{})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = opts.Complete()
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("at least one required capability must be configured"))
+	})
+
 	It("applies required capabilities to target slice", func() {
 		cfg := &admissioncmd.Config{
 			RequiredCapabilities: []validator.RequiredCapability{

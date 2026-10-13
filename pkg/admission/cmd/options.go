@@ -44,6 +44,10 @@ func (c *ConfigOptions) AddFlags(fs *pflag.FlagSet) {
 
 // Complete parses and validates the options.
 func (c *ConfigOptions) Complete() error {
+	if len(c.RawRequiredCapabilities) == 0 {
+		return fmt.Errorf("at least one required capability must be configured; if validation is not desired, do not deploy this webhook")
+	}
+
 	var caps []validator.RequiredCapability
 	for _, raw := range c.RawRequiredCapabilities {
 		parts := strings.SplitN(raw, "=", 2)

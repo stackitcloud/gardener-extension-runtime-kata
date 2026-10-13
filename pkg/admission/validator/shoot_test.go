@@ -128,14 +128,6 @@ var _ = Describe("Shoot Validator", func() {
 		Expect(v.Validate(ctx, shoot, nil)).To(Succeed())
 	})
 
-	It("succeeds when no required capabilities are configured", func() {
-		shoot.Spec.Provider.Workers[0].Machine.Type = "b1.2"
-		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cloudProfile).Build()
-		v := validator.NewShootValidatorWithClient(c, nil)
-
-		Expect(v.Validate(ctx, shoot, nil)).To(Succeed())
-	})
-
 	It("succeeds when update has no changes in spec", func() {
 		c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cloudProfile).Build()
 		v := validator.NewShootValidatorWithClient(c, defaultRequiredCaps)
