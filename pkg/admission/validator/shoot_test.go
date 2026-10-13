@@ -174,7 +174,7 @@ var _ = Describe("Shoot Validator", func() {
 	})
 
 	It("succeeds with NamespacedCloudProfile reference when machine type has required capability", func() {
-		shoot.Spec.CloudProfileName = nil
+		shoot.Spec.CloudProfile = nil
 		shoot.Spec.CloudProfile = &gardencorev1beta1.CloudProfileReference{
 			Kind: v1beta1constants.CloudProfileReferenceKindNamespacedCloudProfile,
 			Name: "my-profile",
@@ -197,7 +197,7 @@ var _ = Describe("Shoot Validator", func() {
 	})
 
 	It("fails with NamespacedCloudProfile when machine type lacks required capability", func() {
-		shoot.Spec.CloudProfileName = nil
+		shoot.Spec.CloudProfile = nil
 		shoot.Spec.CloudProfile = &gardencorev1beta1.CloudProfileReference{
 			Kind: v1beta1constants.CloudProfileReferenceKindNamespacedCloudProfile,
 			Name: "my-profile",
@@ -254,13 +254,13 @@ var _ = Describe("Shoot Validator", func() {
 
 		// Add an unsatisfied capability requirement
 		unsatisfiedCaps := append(multipleCaps, validator.RequiredCapability{
-			Name:  "gpuArchitecture",
-			Value: "NVIDIA_AMPERE",
+			Name:  "foo",
+			Value: "bar",
 		})
 		v2 := validator.NewShootValidatorWithClient(c, unsatisfiedCaps)
 		err := v2.Validate(ctx, shoot, nil)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring(`does not have required capability gpuArchitecture="NVIDIA_AMPERE"`))
+		Expect(err.Error()).To(ContainSubstring(`does not have required capability foo="bar"`))
 	})
 
 	It("succeeds when validated object is an internal core.Shoot", func() {
