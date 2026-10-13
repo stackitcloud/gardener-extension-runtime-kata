@@ -79,7 +79,7 @@ as well. The taint key is not known to the extension, so no tolerations are inje
 
 ### Machine Capability Validation
 
-An admission webhook (`gardener-extension-admission-runtime-kata`) validates that worker pools enabling Kata use machine types supporting nested virtualization. It checks the pool's `machine.type` against the `capabilities` defined in the referenced `(Namespaced)CloudProfile`.
+An admission webhook (`gardener-extension-admission-runtime-kata`) validates that worker pools enabling Kata use machine types supported. It checks the pool's `machine.type` against the `capabilities` defined in the referenced `(Namespaced)CloudProfile`.
 
 By default, the webhook requires `containerRuntime: [kata]`:
 
@@ -98,7 +98,7 @@ requiredCapabilities:
     value: kata
 ```
 
-If capability validation is not needed, do not deploy the admission webhook.
+If capability validation is not needed, you can simply omit deploying the admission webhook.
 
 ### Requirements
 
