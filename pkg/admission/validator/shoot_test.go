@@ -41,7 +41,7 @@ var _ = Describe("Shoot Validator", func() {
 
 		cloudProfile = &gardencorev1beta1.CloudProfile{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "stackit",
+				Name: "profile-1",
 			},
 			Spec: gardencorev1beta1.CloudProfileSpec{
 				MachineCapabilities: []gardencorev1beta1.CapabilityDefinition{
@@ -79,7 +79,7 @@ var _ = Describe("Shoot Validator", func() {
 				Namespace: "garden-test",
 			},
 			Spec: gardencorev1beta1.ShootSpec{
-				CloudProfileName: new("stackit"),
+				CloudProfileName: new("profile-1"),
 				Provider: gardencorev1beta1.Provider{
 					Workers: []gardencorev1beta1.Worker{
 						{
@@ -150,7 +150,7 @@ var _ = Describe("Shoot Validator", func() {
 
 		err := v.Validate(ctx, shoot, nil)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring(`machine type "b1.2" for worker pool "worker-pool-1" does not have required capability containerRuntime="kata" in CloudProfile "stackit"`))
+		Expect(err.Error()).To(ContainSubstring(`machine type "b1.2" for worker pool "worker-pool-1" does not have required capability containerRuntime="kata" in CloudProfile "profile-1"`))
 	})
 
 	It("fails when machine type has a different capability value", func() {
@@ -160,7 +160,7 @@ var _ = Describe("Shoot Validator", func() {
 
 		err := v.Validate(ctx, shoot, nil)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring(`machine type "other.flavor" for worker pool "worker-pool-1" does not have required capability containerRuntime="kata" in CloudProfile "stackit"`))
+		Expect(err.Error()).To(ContainSubstring(`machine type "other.flavor" for worker pool "worker-pool-1" does not have required capability containerRuntime="kata" in CloudProfile "profile-1"`))
 	})
 
 	It("fails when machine type is not found in CloudProfile", func() {
