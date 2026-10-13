@@ -57,10 +57,6 @@ type shootValidator struct {
 
 // Validate validates the given Shoot object.
 func (s *shootValidator) Validate(ctx context.Context, newObj, oldObj client.Object) error {
-	if len(s.requiredCapabilities) == 0 {
-		return nil
-	}
-
 	shoot, err := s.extractShoot(newObj)
 	if err != nil {
 		return err
