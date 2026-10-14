@@ -13,7 +13,7 @@ $(CRANE): $(call tool_version_file,$(CRANE),$(CRANE_VERSION))
 	GOBIN=$(abspath $(TOOLS_BIN_DIR)) go install github.com/google/go-containerregistry/cmd/crane@$(CRANE_VERSION)
 
 # renovate: datasource=go depName=golang.org/x/vuln
-GOVULNCHECK_VERSION ?= v1.8.0
+GOVULNCHECK_VERSION ?= v1.9.0
 
 GOVULNCHECK := $(TOOLS_BIN_DIR)/govulncheck
 $(GOVULNCHECK): $(call tool_version_file,$(GOVULNCHECK),$(GOVULNCHECK_VERSION))
