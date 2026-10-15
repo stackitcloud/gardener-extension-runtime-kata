@@ -7,7 +7,7 @@ spec:
 ...
   provider:
     workers:
-      # Requires a machine type with capability containerRuntime=kata.
+      # Requires a machine type with capability nestedVirtualization=supported.
       # A user-defined taint is recommended so only Kata workloads land on these nodes.
       - name: worker-kata
 ...

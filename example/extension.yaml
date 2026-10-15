@@ -8,10 +8,10 @@ spec:
   deployment:
     admission:
       values:
-        # Required machine capabilities for Kata worker pools (defaults to containerRuntime=kata).
+        # Required machine capabilities for Kata worker pools (defaults to nestedVirtualization=supported).
         requiredCapabilities:
-          - name: containerRuntime
-            value: kata
+          - name: nestedVirtualization
+            value: supported
       runtimeCluster:
         helm:
           ociRepository:
