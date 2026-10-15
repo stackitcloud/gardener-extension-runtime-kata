@@ -22,8 +22,8 @@ kubeconfig:
 # Options to configure the required machine capabilities for Kata to be installable on worker pools.
 # Each entry specifies a capability name and the required value in the referenced CloudProfile.
 requiredCapabilities:
-  - name: containerRuntime
-    value: kata
+  - name: nestedVirtualization
+    value: supported
 
 service:
   topologyAwareRouting:
