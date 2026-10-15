@@ -9,7 +9,6 @@ rules:
   - apiGroups:
       - core.gardener.cloud
     resources:
-      - shoots
       - cloudprofiles
       - namespacedcloudprofiles
     verbs:
@@ -33,8 +32,16 @@ rules:
       - get
       - list
       - watch
+  - apiGroups:
+      - admissionregistration.k8s.io
+    resources:
+      - validatingwebhookconfigurations
+    resourceNames:
+    - gardener-extension-admission-runtime-kata
+    verbs:
       - patch
       - update
+      - delete
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
