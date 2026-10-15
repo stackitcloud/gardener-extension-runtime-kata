@@ -39,6 +39,7 @@ fi
 
 chart_name="gardener-extension-runtime-kata"
 controller_key="gardener-extension-runtime-kata"
+admission_key="gardener-extension-admission-runtime-kata"
 installation_key="gardener-extension-runtime-kata-installation"
 # Must match kata.RuntimeKataInstallationImageName / imagevector/images.yaml.
 installation_imagevector_name="runtime-kata-installation"
@@ -166,3 +167,46 @@ if [ ! -f "$packaged_chart_file" ]; then
 fi
 
 helm push "$packaged_chart_file" "oci://$(oci_repo "$controller_image")/charts"
+
+# Package and push admission charts if admission image is present
+admission_image="$(image_full "$admission_key" 2>/dev/null || true)"
+if [ -n "$admission_image" ]; then
+  admission_repo="$(image_repo "$admission_image")"
+  ADMISSION_REPO="$admission_repo"
+  ADMISSION_TAG="$(image_tag_with_digest "$admission_image")"
+  export ADMISSION_REPO ADMISSION_TAG
+
+  for subchart in runtime virtual-garden; do
+    subchart_src="${REPO_ROOT}/charts/gardener-extension-admission-runtime-kata/charts/${subchart}"
+    subchart_name="admission-runtime-kata-${subchart}"
+    subchart_build_dir="${helm_artifacts}/${subchart_name}"
+
+    rm -rf "$subchart_build_dir"
+    mkdir -p "$subchart_build_dir"
+    cp -r "${subchart_src}/." "$subchart_build_dir"
+
+    if [ -f "$subchart_build_dir/values.yaml" ] && yq -e '.image' "$subchart_build_dir/values.yaml" >/dev/null 2>&1; then
+      yq -i '
+        .image.repository = env(ADMISSION_REPO) |
+        .image.tag = env(ADMISSION_TAG)
+      ' "$subchart_build_dir/values.yaml"
+    fi
+
+    if ! helm_package_raw_output=$(helm package "$subchart_build_dir" --version "$chart_version" -d "$helm_artifacts" 2>&1); then
+      echo "Error: 'helm package' failed for ${subchart_name}:" >&2
+      echo "$helm_package_raw_output" >&2
+      exit 1
+    fi
+
+    packaged_subchart_file="${helm_artifacts}/${subchart_name}-${chart_version}.tgz"
+    if [ ! -f "$packaged_subchart_file" ]; then
+      echo "Error: Expected packaged chart file '${packaged_subchart_file}' was not found." >&2
+      echo "$helm_package_raw_output" >&2
+      exit 1
+    fi
+
+    helm push "$packaged_subchart_file" "oci://$(oci_repo "$admission_image")/charts"
+  done
+
+  unset ADMISSION_REPO ADMISSION_TAG
+fi

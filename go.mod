@@ -11,10 +11,12 @@ require (
 	github.com/onsi/ginkgo/v2 v2.33.1
 	github.com/onsi/gomega v1.44.0
 	github.com/spf13/cobra v1.10.2
+	github.com/spf13/pflag v1.0.10
 	golang.org/x/tools v0.52.0
 	k8s.io/api v0.37.1
 	k8s.io/apiextensions-apiserver v0.37.1
 	k8s.io/apimachinery v0.37.1
+	k8s.io/client-go v0.37.1
 	k8s.io/code-generator v0.37.1
 	k8s.io/component-base v0.37.1
 	sigs.k8s.io/controller-runtime v0.25.2
@@ -166,7 +168,6 @@ require (
 	github.com/sourcegraph/conc v0.3.1-0.20240121214520-5f936abd7ae8 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/spf13/viper v1.21.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twmb/franz-go v1.21.2 // indirect
@@ -224,7 +225,6 @@ require (
 	istio.io/client-go v1.29.2 // indirect
 	k8s.io/apiserver v0.37.1 // indirect
 	k8s.io/autoscaler/vertical-pod-autoscaler v1.7.2 // indirect
-	k8s.io/client-go v0.37.1 // indirect
 	k8s.io/gengo/v2 v2.0.0-20260408192533-25e2208e0dc3 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-aggregator v0.37.1 // indirect

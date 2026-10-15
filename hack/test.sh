@@ -26,4 +26,9 @@ if [ -n "${LD_FLAGS:-}" ]; then
   ldflags_flag=("-ldflags" "${LD_FLAGS}")
 fi
 
-go test "${ldflags_flag[@]}" -race ${timeout_flag:-} "$@" $test_flags | grep -v 'no test files'
+race_flag="-race"
+if [ "${CGO_ENABLED:-1}" = "0" ] || (! command -v gcc >/dev/null 2>&1 && ! command -v clang >/dev/null 2>&1); then
+  race_flag=""
+fi
+
+go test "${ldflags_flag[@]}" ${race_flag} ${timeout_flag:-} "$@" $test_flags | grep -v 'no test files'
