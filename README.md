@@ -74,8 +74,38 @@ spec:
 
 The `RuntimeClass` `nodeSelector` pins such pods to nodes of kata-enabled pools. Because
 nested-virtualization pools usually carry a user-defined taint, pods must tolerate that taint
-as well. The he taint key is not known to the extension, so no tolerations are injected into the
+as well. The taint key is not known to the extension, so no tolerations are injected into the
 `RuntimeClass`.
+
+### Machine Capability Validation
+
+An admission webhook (`gardener-extension-admission-runtime-kata`) validates that worker pools enabling Kata use machine types whose capabilities satisfy the configured requirements. It checks the pool's `machine.type` against the `capabilities` defined in the referenced `(Namespaced)CloudProfile`.
+
+```yaml
+# In CloudProfile spec.machineTypes[]
+capabilities:
+  nestedVirtualization:
+    - supported
+```
+
+Required capabilities can be customized via `requiredCapabilities` in the admission chart or `Extension` deployment values.
+By default, the webhook requires `nestedVirtualization: [supported]`:
+
+```yaml
+requiredCapabilities:
+  - name: nestedVirtualization
+    value: supported
+```
+
+If capability validation is not needed, you can simply omit deploying the admission webhook.
+
+> **Note on update semantics:** the webhook validates against the *current* state of the
+> referenced CloudProfile. Any `spec` change of a Shoot with a Kata worker pool re-runs
+> this validation. If a required capability is later removed from a machine type in the
+> CloudProfile, `spec` updates of existing Kata shoots referencing that machine type will
+> be rejected. Make sure CloudProfiles declare the required capabilities before deploying
+> the webhook, and do not remove capabilities while Kata shoots reference the affected
+> machine types.
 
 ### Requirements
 
