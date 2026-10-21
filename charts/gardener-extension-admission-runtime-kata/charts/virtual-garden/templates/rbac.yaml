@@ -32,6 +32,13 @@ rules:
       - get
       - list
       - watch
+  # Write access is restricted to the ValidatingWebhookConfiguration created by this
+  # admission component ("gardener-extension-" + AdmissionName, i.e. the name computed
+  # by extensionswebhook.PrefixedName with providerName "admission-runtime-kata").
+  # Note: when deployed with --webhook-config-namespace starting with
+  # "runtime-extension-", Gardener appends a "-runtime" suffix to the configuration
+  # name (see extensions/pkg/webhook/cmd.NewAddToManagerOptions) and this
+  # resourceName must be adapted accordingly.
   - apiGroups:
       - admissionregistration.k8s.io
     resources:

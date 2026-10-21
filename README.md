@@ -79,7 +79,7 @@ as well. The taint key is not known to the extension, so no tolerations are inje
 
 ### Machine Capability Validation
 
-An admission webhook (`gardener-extension-admission-runtime-kata`) validates that worker pools enabling Kata use machine types supported. It checks the pool's `machine.type` against the `capabilities` defined in the referenced `(Namespaced)CloudProfile`.
+An admission webhook (`gardener-extension-admission-runtime-kata`) validates that worker pools enabling Kata use machine types whose capabilities satisfy the configured requirements. It checks the pool's `machine.type` against the `capabilities` defined in the referenced `(Namespaced)CloudProfile`.
 
 ```yaml
 # In CloudProfile spec.machineTypes[]
@@ -98,6 +98,14 @@ requiredCapabilities:
 ```
 
 If capability validation is not needed, you can simply omit deploying the admission webhook.
+
+> **Note on update semantics:** the webhook validates against the *current* state of the
+> referenced CloudProfile. Any `spec` change of a Shoot with a Kata worker pool re-runs
+> this validation. If a required capability is later removed from a machine type in the
+> CloudProfile, `spec` updates of existing Kata shoots referencing that machine type will
+> be rejected. Make sure CloudProfiles declare the required capabilities before deploying
+> the webhook, and do not remove capabilities while Kata shoots reference the affected
+> machine types.
 
 ### Requirements
 

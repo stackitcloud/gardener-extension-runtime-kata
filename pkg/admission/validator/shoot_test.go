@@ -174,7 +174,6 @@ var _ = Describe("Shoot Validator", func() {
 	})
 
 	It("succeeds with NamespacedCloudProfile reference when machine type has required capability", func() {
-		shoot.Spec.CloudProfile = nil
 		shoot.Spec.CloudProfile = &gardencorev1beta1.CloudProfileReference{
 			Kind: v1beta1constants.CloudProfileReferenceKindNamespacedCloudProfile,
 			Name: "my-profile",
@@ -197,7 +196,6 @@ var _ = Describe("Shoot Validator", func() {
 	})
 
 	It("fails with NamespacedCloudProfile when machine type lacks required capability", func() {
-		shoot.Spec.CloudProfile = nil
 		shoot.Spec.CloudProfile = &gardencorev1beta1.CloudProfileReference{
 			Kind: v1beta1constants.CloudProfileReferenceKindNamespacedCloudProfile,
 			Name: "my-profile",

@@ -114,6 +114,10 @@ func (s *shootValidator) Validate(ctx context.Context, newObj, oldObj client.Obj
 			continue
 		}
 
+		// NOTE: downstream consumers (e.g., the SKE API error mapping) rely on this
+		// exact denial format: the field path ("spec.provider.workers[i].machine.type"),
+		// the "Forbidden: " prefix, the trailing ` in CloudProfile "<name>"` suffix, and
+		// the "does not have required capability" wording. Coordinate changes with them.
 		for _, reqCap := range s.requiredCapabilities {
 			values, ok := machineType.Capabilities[reqCap.Name]
 			if !ok || !slices.Contains(values, reqCap.Value) {
