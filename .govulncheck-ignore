@@ -6,3 +6,16 @@
 # without an upper bound. Fixed in Gardener v1.145.0, this repo uses v1.151.0+.
 # https://github.com/golang/vulndb/issues/6666
 GO-2026-6568
+
+# Both vulnerabilities are actually fixed by echo/v4 v4.16.3 (see
+# GHSA-246p-cpwv-v3jq and GHSA-99jh-6h7p-pp36: "vulnerable_version_range:
+# >= 4.0.0, < 4.16.3, patched_versions: 4.16.3"), which this repository
+# pins as an indirect dependency. However, the Go vulnerability database
+# (https://vuln.go.dev/ID/GO-2026-6872.json and GO-2026-6875.json) has not
+# been updated with the v4.16.3 fixed range yet (it only lists fixes for
+# echo/v5), so govulncheck keeps reporting them. Remove these entries as
+# soon as the vulndb marks echo/v4 v4.16.3 as fixed.
+# GO-2026-6872: Rate Limiter Bypass via Spoofed X-Forwarded-For Header (GHSA-246p-cpwv-v3jq)
+# GO-2026-6875: Reverse Proxy Forwards Attacker-Supplied X-Real-IP to Upstream by Default (GHSA-99jh-6h7p-pp36)
+GO-2026-6872
+GO-2026-6875
