@@ -143,7 +143,7 @@ func ensureFiles(files *[]extensionsv1alpha1.File, installerImage, version strin
 			// Version-stamped download path: a Kata upgrade delivers a new tarball at a new path, which
 			// changes the install unit's FilePaths and re-triggers the installation.
 			Path:        tarballPath(version),
-			Permissions: new(uint32(0644)),
+			Permissions: new(int32(0644)),
 			Content: extensionsv1alpha1.FileContent{
 				ImageRef: &extensionsv1alpha1.FileContentImageRef{
 					Image:           installerImage,
@@ -153,7 +153,7 @@ func ensureFiles(files *[]extensionsv1alpha1.File, installerImage, version strin
 		},
 		{
 			Path:        installScriptPath,
-			Permissions: new(uint32(0755)),
+			Permissions: new(int32(0755)),
 			Content: extensionsv1alpha1.FileContent{
 				Inline: &extensionsv1alpha1.FileContentInline{
 					Encoding: string(extensionsv1alpha1.PlainFileCodecID),
